@@ -12,6 +12,29 @@
 >
 > Last updated: 2026-05-16.
 
+## Branding decision (2026-05-16)
+
+The identity architecture is **Paraxiom-namespaced** (`paraxiom-*` on
+crates.io, `@paraxiom/*` on npm, `paraxiom-identity*` on PyPI). The
+treatise is `Paraxiom/identity-architecture` on GitHub.
+
+The first deployment of the Paraxiom-V.I.A. augmented-democracy
+framework is **NeoCarbone Governance** — the multi-stakeholder
+governance application running at NeoCarbone (currently at
+`148.113.197.101/#governance`, target HTTPS hostname pending). NC
+Governance consumes the Paraxiom identity substrate and applies it to
+the FieldNOW product context.
+
+This split — Paraxiom-foundation + NC-Governance-as-first-deployment +
+NeoGen-as-pipeline + FieldNOW-as-product — establishes the
+narrative for academic citation, standards-body submission, and
+external pitches (DND, CCCS, BoE, Numana, etc.):
+
+> *"Paraxiom Technologies provides the post-quantum identity
+> substrate and the augmented-democracy framework. NeoCarbone
+> Governance is the first deployment. NeoGen is the spec-driven
+> generation pipeline. FieldNOW is the customer product."*
+
 ---
 
 ## §1 Why publish
