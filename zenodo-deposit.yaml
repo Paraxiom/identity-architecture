@@ -1,0 +1,151 @@
+# Zenodo deposit metadata — paste-ready for the Zenodo deposit form.
+# Reference: https://developers.zenodo.org/#deposit-metadata
+#
+# Procedure:
+#   1. Log into zenodo.org under the Paraxiom account
+#   2. New Upload -> upload build/main.pdf
+#   3. Fill metadata using the values below
+#   4. Save as draft, get the DOI
+#   5. Publish (irreversible)
+#   6. Record the DOI back in README.md + main.tex footer
+#   7. Bump treatise version to v1.0.1 in main.tex
+#
+# Once published, the DOI becomes the canonical citation for:
+#   - Cargo.toml `documentation = "https://doi.org/..."`
+#   - package.json `"homepage"` for npm artifacts
+#   - PyPI long_description references
+#   - All downstream consumer docs
+
+upload_type: publication
+publication_type: workingpaper
+
+title: "Identity as Accountability Chain: A Post-Quantum Architecture for Persistent Identity Across Human, Machine, and AI Agent Substrates"
+
+creators:
+  - name: Cormier, Sylvain
+    affiliation: Paraxiom Technologies Inc.
+    orcid: ~  # REQUIRED — fill from https://orcid.org/{your-id}
+
+description: |
+  We propose a formal model in which identity is not a primitive but a
+  layered accountability chain that accretes from a founding individuation
+  event and persists as long as cryptographic, relational, and civic
+  verification can be reconstructed. The model unifies biological, machine,
+  and artificial-intelligence cases under a single schema with six accretion
+  layers and a four-tier permanence hierarchy for substrate-level identifiers.
+
+  We prove six results that bear directly on engineering: (i) Founding
+  uniqueness — every identity locus has exactly one origin event; (ii) Tier
+  monotonicity — the permanence of an identity claim is non-increasing in
+  the tier of its substrate identifier; (iii) Stratum well-foundedness —
+  every scoped or agent identity traces in finite steps to a person- or
+  organization-rooted identity; (iv) Cryptographic survival — only
+  post-quantum-signed identities remain verifiable past a
+  cryptographically-relevant quantum computer (CRQC) event; (v) Crypto-
+  shredding completeness — master-key deletion renders all envelope-
+  encrypted credentials computationally inaccessible without recourse to
+  unpinning; (vi) LLM instance non-identity — two LLM instances with
+  identical weights but disjoint deployment IDs are distinct identity loci.
+
+  Additional results on governance-level participation (chartered scope
+  bounding, multi-level participation independence, reputation
+  non-transitivity) and privacy-preserving disclosure (selective disclosure
+  soundness, unlinkability under pairwise pseudonyms) ground a five-tier
+  privacy model in which holders choose what is revealed per action.
+
+  We survey the state of digital identity as of May 2026, noting that no
+  major civic identity system runs post-quantum signatures in production
+  despite regulatory deadlines of 2030–2035, and that AI agent identity is
+  a standards vacuum. We present the Paraxiom architecture as a three-tier
+  system combining on-chain post-quantum primitives (QuantumHarmony, with
+  SPHINCS+ and Falcon-512), IPFS for bulk encrypted payloads, and
+  Postgres+Redis mirrors for query-layer access. Five identity strata
+  (S1–S5) cover humans, scoped delegations, vault credentials, agent
+  instances, and cross-tenant aggregates.
+
+  The treatise concludes that identity is engineering, not philosophy: the
+  accountability chain does not extend itself; the post-quantum signatures
+  do not sign themselves. What we build now determines whether identity
+  remains a coherent concept past 2040.
+
+access_right: open
+license: CC-BY-SA-4.0
+
+keywords:
+  - digital identity
+  - post-quantum cryptography
+  - accountability
+  - agent identity
+  - substrate attestation
+  - decentralized identity
+  - SPHINCS+
+  - Falcon-512
+  - Substrate
+  - IPFS
+  - eIDAS
+  - AAMVA
+  - MCP
+  - verifiable credentials
+  - zero-knowledge
+  - augmented democracy
+  - quantum harmony
+
+communities:
+  - identifier: cs-cr  # cryptography & security
+  # Add: - identifier: open-science (if Paraxiom is a member)
+
+subjects:
+  - term: Computer Science — Cryptography and Security
+    identifier: cs.CR
+    scheme: arxiv
+  - term: Computer Science — Distributed, Parallel, and Cluster Computing
+    identifier: cs.DC
+    scheme: arxiv
+
+related_identifiers:
+  - identifier: https://github.com/Paraxiom/identity-architecture
+    relation: isSupplementTo
+    resource_type: software
+  # After NC Governance v0.2 ships and paraxiom-identity-types lands:
+  # - identifier: https://crates.io/crates/paraxiom-identity-types
+  #   relation: isSupplementTo
+  #   resource_type: software
+  # - identifier: https://www.npmjs.com/package/@paraxiom/identity-types
+  #   relation: isSupplementTo
+  #   resource_type: software
+
+references:
+  - "National Institute of Standards and Technology. FIPS 203: Module-Lattice-Based Key-Encapsulation Mechanism Standard. U.S. Department of Commerce, 13 August 2024."
+  - "National Institute of Standards and Technology. FIPS 204: Module-Lattice-Based Digital Signature Standard. U.S. Department of Commerce, 13 August 2024."
+  - "National Institute of Standards and Technology. FIPS 205: Stateless Hash-Based Digital Signature Standard. U.S. Department of Commerce, 13 August 2024."
+  - "Shor, P. W. Algorithms for quantum computation: discrete logarithms and factoring. FOCS, 1994."
+  - "European Parliament and Council. Regulation (EU) 2024/1183 amending Regulation (EU) No 910/2014 (eIDAS 2.0). Official Journal of the European Union, May 2024."
+  - "Anthropic. Model Context Protocol Specification, Release 2025-11-25."
+  - "World Wide Web Consortium. Verifiable Credentials Data Model 2.0 (W3C Recommendation, 15 May 2025)."
+  - "World Wide Web Consortium. Decentralized Identifiers (DIDs) v1.1 (W3C Candidate Recommendation, 5 March 2026)."
+  - "OpenID Foundation. OpenID for Verifiable Presentations 1.0 (Final, July 2025)."
+  - "National Security Agency. Commercial National Security Algorithm Suite 2.0 (CNSA 2.0)."
+  - "European Union Agency for Cybersecurity. Post-Quantum Cryptography: Current State and Quantum Mitigation. ENISA, 2025."
+
+notes: |
+  Companion materials and the source LaTeX live in the GitHub repository
+  Paraxiom/identity-architecture under a dual license: Apache 2.0 for source
+  code (build scripts, future pallet code, reference implementations) and
+  CC BY-SA 4.0 for the treatise text, diagrams, and proofs.
+
+  Pre-publication v1.0 draft. v1.0.1 will be released after the DOI is
+  assigned (to include the self-citation).
+
+# Optional fields (fill in if applicable at deposit time):
+#
+# language: eng
+# version: 1.0
+# grants:                # if funded
+#   - id: 10.13039/501100000038::SR&ED-2026-...
+# embargo_date: ~        # leave blank for immediate open access
+# embargo_reason: ~
+# locations:             # geographic context (optional)
+#   - place: Montréal, Québec, Canada
+#     point: { lat: 45.5, lon: -73.6 }
+# imprint_publisher: Paraxiom Technologies Inc.
+# imprint_place: Montréal, Québec, Canada
