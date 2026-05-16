@@ -1,0 +1,35 @@
+Identity as Accountability Chain
+Copyright 2026 Paraxiom Technologies Inc.
+
+This product includes work authored by Sylvain Cormier
+<sylvain@paraxiom.org>, founder of Paraxiom Technologies Inc.
+
+The architecture described herein draws on:
+
+  - The QuantumHarmony post-quantum L1 chain (Paraxiom Technologies),
+    which itself extends the polkadot-sdk (Parity Technologies,
+    Apache 2.0) with PQ signature size accommodations and the
+    parity-scale-codec fork.
+
+  - The Paraxiom-V.I.A. augmented-democracy framework, a joint effort
+    of Paraxiom Technologies Inc. and V.I.A. Solutions (Olivier
+    Garand), aimed at transparent multi-stakeholder governance for
+    cities and enterprises.
+
+  - NIST post-quantum cryptography standards FIPS 203 (ML-KEM),
+    FIPS 204 (ML-DSA), and FIPS 205 (SLH-DSA), published 13 August
+    2024.
+
+  - W3C Verifiable Credentials Data Model 2.0 (Recommendation,
+    15 May 2025) and OpenID for Verifiable Credentials 1.0 (Final,
+    July 2025).
+
+Source code is licensed under the Apache License, Version 2.0
+(see LICENSE-CODE). The treatise text, diagrams, and supporting
+documentation are licensed under Creative Commons Attribution-
+ShareAlike 4.0 International (see LICENSE-TEXT).
+
+The architecture is offered as a public good. Identity is
+foundational infrastructure for humans, machines, and AI agents; no
+entity should be able to enclose access to a verifiable accountability
+primitive.

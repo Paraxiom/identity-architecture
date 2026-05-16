@@ -76,3 +76,20 @@ Requires xelatex with `fontspec`, `unicode-math`, `amsthm`,
 
 v1.0, May 15, 2026. Draft for internal review prior to ADR-0017
 architectural session.
+
+## License
+
+This work is offered as a public good. Identity is foundational
+infrastructure for humans, machines, and AI agents; no entity should
+be able to enclose access to a verifiable accountability primitive.
+
+- **Source code** (Rust, scripts, build tooling): Apache License 2.0
+  — see `LICENSE-CODE`.
+- **Treatise text, diagrams, theorems, proofs** (`main.tex`,
+  `build/main.pdf`, `README.md`, and other prose): Creative Commons
+  Attribution-ShareAlike 4.0 International (CC BY-SA 4.0) — see
+  `LICENSE-TEXT`.
+
+Derivatives of the text must be share-alike (CC BY-SA 4.0). The
+intent is that this architecture remains a public good in perpetuity.
+See `NOTICE` for upstream attribution.

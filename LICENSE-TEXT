@@ -1,0 +1,43 @@
+CREATIVE COMMONS ATTRIBUTION-SHAREALIKE 4.0 INTERNATIONAL
+
+The textual content of this repository — including `main.tex`, the
+compiled `build/main.pdf`, the `README.md`, and any other written
+prose, diagrams, theorems, proofs, and accompanying explanation — is
+licensed under the Creative Commons Attribution-ShareAlike 4.0
+International License (CC BY-SA 4.0).
+
+Full license text: https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+Summary:
+  - You are free to: share (copy and redistribute) and adapt (remix,
+    transform, build upon) the material for any purpose, including
+    commercially.
+  - Under the following terms:
+      Attribution — give appropriate credit ("Cormier, S. Identity
+        as Accountability Chain. Paraxiom Technologies Inc., 2026.")
+        provide a link to the license, and indicate if changes were made.
+      ShareAlike — if you remix, transform, or build upon the
+        material, you must distribute your contributions under the
+        same license as the original.
+  - No additional restrictions — you may not apply legal terms or
+    technological measures that legally restrict others from doing
+    anything the license permits.
+
+The reasoning: identity is foundational infrastructure for humans,
+machines, and AI agents. No entity should be able to enclose,
+privatize, or sell access to a verifiable accountability primitive.
+This treatise is offered as a public good. Derivatives must remain
+public goods.
+
+Source code (Rust, scripts, configuration, build artifacts) in this
+repository is separately licensed under the Apache License 2.0; see
+LICENSE-CODE.
+
+────────────────────────────────────────────────────────────────────
+
+Copyright 2026 Paraxiom Technologies Inc. and Sylvain Cormier.
+
+The author requests (but does not require) that adaptations and
+derivative works credit the original Paraxiom-V.I.A. augmented-
+democracy work and acknowledge that the architecture is built on the
+QuantumHarmony post-quantum chain substrate.
