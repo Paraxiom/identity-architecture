@@ -1,0 +1,1755 @@
+% !TEX program = xelatex
+% Identity as Accountability Chain — Paraxiom Technologies
+% Build: latexmk -xelatex main.tex   (or: xelatex main.tex twice)
+
+\documentclass[11pt,a4paper,parskip=half-,DIV=12,headings=standardclasses]{scrartcl}
+
+% =============================================================================
+% Fonts (xelatex + system fonts on macOS)
+% =============================================================================
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\setmainfont{Charter}[Ligatures=TeX]
+\setsansfont{Helvetica Neue}[
+  Scale=MatchLowercase,
+  UprightFont=* Light,
+  BoldFont=* Medium,
+  ItalicFont=* Light Italic,
+  BoldItalicFont=* Medium Italic]
+\setmonofont{Menlo}[Scale=MatchLowercase]
+\setmathfont{Latin Modern Math}
+
+% =============================================================================
+% Layout & typography
+% =============================================================================
+\usepackage{microtype}
+\usepackage[margin=2.5cm,top=2.8cm,bottom=2.8cm]{geometry}
+\linespread{1.15}
+
+\addtokomafont{section}{\sffamily\bfseries\large}
+\addtokomafont{subsection}{\sffamily\bfseries\normalsize}
+\addtokomafont{subsubsection}{\sffamily\normalsize\itshape}
+\addtokomafont{descriptionlabel}{\sffamily\bfseries}
+\addtokomafont{caption}{\small}
+\addtokomafont{captionlabel}{\sffamily\bfseries\small}
+
+% =============================================================================
+% Colors, tables, code, figures
+% =============================================================================
+\usepackage[table]{xcolor}
+\definecolor{ncgray}{HTML}{505050}
+\definecolor{nclight}{HTML}{F4F4F4}
+\definecolor{ncaccent}{HTML}{2C5282}
+\definecolor{ncrule}{HTML}{B8B8B8}
+\definecolor{nckeyword}{HTML}{0F62FE}
+\definecolor{nccomment}{HTML}{6F7C8A}
+\definecolor{ncstring}{HTML}{8A4F2A}
+\definecolor{ncwarn}{HTML}{B7410E}
+
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+\renewcommand{\arraystretch}{1.15}
+
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{nckeyword},
+  commentstyle=\color{nccomment}\itshape,
+  stringstyle=\color{ncstring},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  framerule=0pt,
+  rulecolor=\color{ncrule},
+  backgroundcolor=\color{nclight},
+  xleftmargin=0.5em,
+  xrightmargin=0.5em,
+  numbers=none,
+  captionpos=b,
+}
+\lstdefinelanguage{rust}{
+  morekeywords={fn,let,mut,struct,enum,impl,trait,pub,use,mod,where,Self,self,
+                async,await,move,box,dyn,as,if,else,match,for,while,loop,return,
+                type,const,static,ref,in,Option,Result,Vec,String,bool,u8,u32,u64,i32,i64,
+                BoundedVec,H256,BlockNumber,AccountId,Falcon512,Sphincs,Blake2},
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]"
+}
+
+% =============================================================================
+% Math, theorems, proofs
+% =============================================================================
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+
+\newtheoremstyle{ncthm}%
+  {1.2ex}{1.2ex}%
+  {\itshape}{}%
+  {\sffamily\bfseries}{.}%
+  {0.5em}{}
+
+\newtheoremstyle{ncdef}%
+  {1.2ex}{1.2ex}%
+  {\normalfont}{}%
+  {\sffamily\bfseries}{.}%
+  {0.5em}{}
+
+\theoremstyle{ncthm}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{ncdef}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{axiom}[theorem]{Axiom}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+
+\renewcommand{\qedsymbol}{$\blacksquare$}
+
+% =============================================================================
+% TikZ for diagrams
+% =============================================================================
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds,calc}
+
+% =============================================================================
+% Hyperref + cleveref (last)
+% =============================================================================
+\usepackage[colorlinks=true,
+            linkcolor=ncaccent,
+            urlcolor=ncaccent,
+            citecolor=ncaccent]{hyperref}
+\usepackage[capitalize]{cleveref}
+
+% =============================================================================
+% Custom commands
+% =============================================================================
+\newcommand{\identity}{\mathcal{I}}
+\newcommand{\substrate}{\mathcal{S}}
+\newcommand{\founding}{\mathcal{F}}
+\newcommand{\accretion}{\mathcal{A}}
+\newcommand{\relations}{\mathcal{R}}
+\newcommand{\layers}{\mathcal{L}}
+\newcommand{\pqset}{\Sigma_{\mathrm{PQ}}}
+\newcommand{\Negl}{\mathrm{negl}}
+\newcommand{\KDF}{\mathsf{KDF}}
+\newcommand{\Hash}{\mathsf{H}}
+\newcommand{\Sign}{\mathsf{Sign}}
+\newcommand{\Verify}{\mathsf{Verify}}
+\newcommand{\Enc}{\mathsf{Enc}}
+\newcommand{\Dec}{\mathsf{Dec}}
+\newcommand{\IPFS}{\mathsf{IPFS}}
+\newcommand{\Chain}{\mathsf{Chain}}
+\newcommand{\paraxiom}{\textsc{Paraxiom}}
+\newcommand{\qh}{\textsc{QuantumHarmony}}
+\newcommand{\nc}{\textsc{NeoCarbone}}
+
+% =============================================================================
+% Title block
+% =============================================================================
+\title{
+  \sffamily\bfseries
+  Identity as Accountability Chain\\[0.4ex]
+  \large\mdseries A Post-Quantum Architecture for Persistent Identity\\
+  Across Human, Machine, and AI Agent Substrates
+}
+\author{
+  \normalsize Sylvain Cormier\\
+  \footnotesize Paraxiom Technologies Inc.\\
+  \footnotesize \texttt{sylvain@paraxiom.org}
+}
+\date{\small May 15, 2026}
+
+% =============================================================================
+\begin{document}
+% =============================================================================
+
+\maketitle
+
+\begin{abstract}
+\noindent
+We propose a formal model in which \emph{identity} is not a primitive
+but a layered accountability chain that accretes from a founding
+individuation event and persists as long as cryptographic, relational,
+and civic verification can be reconstructed. The model unifies
+biological, machine, and artificial-intelligence cases under a single
+schema with six accretion layers and a four-tier permanence hierarchy
+for substrate-level identifiers.
+
+We prove four results that bear directly on engineering: (i)~Founding
+uniqueness --- every identity locus has exactly one origin event;
+(ii)~Tier monotonicity --- the permanence of an identity claim is
+non-increasing in the tier of its substrate identifier;
+(iii)~Cryptographic survival --- only post-quantum-signed identities
+remain verifiable past a cryptographically-relevant quantum computer
+(CRQC) event; and (iv)~Crypto-shredding completeness --- master-key
+deletion renders all envelope-encrypted credentials computationally
+inaccessible without recourse to unpinning.
+
+We survey the state of digital identity as of May 2026, noting that no
+major civic identity system runs post-quantum signatures in production
+despite regulatory deadlines of 2030--2035, and that AI agent identity
+is a standards vacuum.
+
+We then present the \paraxiom\ architecture: a three-tier system
+combining on-chain post-quantum primitives (\qh, with SPHINCS+ and
+Falcon-512), IPFS for bulk encrypted payloads, and Postgres+Redis
+mirrors for query-layer access. The architecture is grounded in five
+identity strata (S1--S5) covering humans, scoped delegations, vault
+credentials, agent instances, and cross-tenant aggregates, with
+provision for future extensions to swarm and protocol identities.
+
+The treatise concludes that identity is engineering, not philosophy:
+the accountability chain does not extend itself; the post-quantum
+signatures do not sign themselves. What we build now determines
+whether identity remains a coherent concept past 2040.
+\end{abstract}
+
+\bigskip
+\noindent\textbf{Keywords:}\;
+digital identity, post-quantum cryptography, accountability,
+agent identity, substrate attestation, decentralized identity,
+SPHINCS+, Falcon-512, Substrate, IPFS, eIDAS, AAMVA, MCP,
+verifiable credentials.
+
+\bigskip
+
+\tableofcontents
+
+\bigskip
+
+% =============================================================================
+\section{Introduction}
+% =============================================================================
+
+\subsection{Premise}
+
+A governance application requires an ``identity primitive.'' A
+blockchain pallet needs a stratum field. A credential vault needs a
+user. Before we choose data structures, we must answer a prior
+question: what \emph{is} identity, and when does it begin?
+
+This treatise advances a single claim:
+
+\begin{quote}
+\itshape
+Identity is not a primitive. It is a layered accountability chain
+that accretes from the moment a locus of action becomes individuated,
+and persists exactly as long as the chain can verify continuity.
+When the chain breaks, identity dissolves --- regardless of whether
+the substrate (body, hardware, weights file) is still running.
+\end{quote}
+
+This claim holds for humans, for processes, for AI agents, for swarms,
+for organizations. The substrate differs; the accretion logic is
+identical. We will state this formally
+(\Cref{def:identity-locus,def:accretion-chain}), prove that it
+implies four engineering invariants
+(\Cref{thm:founding-uniqueness,thm:tier-monotonicity,thm:cryptographic-survival,thm:crypto-shredding}),
+and demonstrate that the \paraxiom\ architecture realizes them.
+
+\subsection{Why now}
+
+Three forces drive this work to operational urgency in 2026.
+
+\textbf{Post-quantum cryptography becomes load-bearing.} NIST published
+ML-KEM, ML-DSA, and SLH-DSA as FIPS standards on 13~August
+2024~\cite{nist-fips-203,nist-fips-204,nist-fips-205}. The U.S.\ NSA's
+CNSA~2.0 prohibits classical algorithms in National Security Systems
+by 2035. The EU joint PQC roadmap (June 2025) targets identity-wallet
+PKI migration by the same horizon. Yet, as of May 2026, no major civic
+identity system operationally runs post-quantum signatures in
+production. The window in which a classical signature today can be
+forged retroactively by a sufficient quantum computer is the window
+in which the entire pre-CRQC accountability chain collapses.
+
+\textbf{AI agent identity is an open standards vacuum.} The Linux
+Foundation's Agentic AI Foundation launched in December~2025 with
+contributions from Anthropic (MCP), OpenAI (AGENTS.md), and Block
+(Goose). MCP added a server-identity primitive in
+November~2025~\cite{mcp-spec-2025-11}. Google's A2A protocol uses
+workload-identity federation~\cite{google-a2a}. Cloudflare-backed
+IETF Web Bot Auth proposes signed HTTP requests. No standard exists
+for model substrate attestation: cryptographically proving that a
+given output originated from a specific weights binary on a specific
+hardware root. The field is where SSI was in 2018.
+
+\textbf{Civic identity is fragmenting.} EU eIDAS~2.0 mandates wallet
+deployment by 24~December~2026~\cite{eidas-2024-1183}. US mDL
+proliferates state by state with no federal coordination. The UK
+GOV.UK One~Login operates uncertified against its own trust
+framework. Canada lacks a federal equivalent to EUDI. The conditions
+for an architecture-of-record are present.
+
+\subsection{Method}
+
+\Cref{sec:formal-model,sec:layer-theory,sec:founding,sec:machine-storage,sec:agent,sec:llm,sec:crypto-substrate}
+develop the formal model. \Cref{sec:landscape} surveys the deployed
+state of digital identity in May~2026. \Cref{sec:paraxiom-architecture}
+presents the engineering realization, with proofs of crypto-shredding
+completeness and verification-time accountability enforcement.
+\Cref{sec:future,sec:roadmap,sec:conclusion} discuss scenario
+projections, implementation sequencing, and concluding remarks.
+Appendices give detailed proofs, pallet API specifications, and
+sources.
+
+% =============================================================================
+\section{Formal model of identity}\label{sec:formal-model}
+% =============================================================================
+
+We begin by stating the model abstractly. Subsequent sections
+specialize to biological, machine, agent, and LLM cases.
+
+\subsection{Primitive sets}
+
+Fix the following primitive sets:
+\begin{itemize}
+\item $\mathbb{T}$ --- time, totally ordered.
+\item $\mathbb{K}$ --- cryptographic keypairs over some signature
+  scheme $\Sigma$, with operations
+  $\Sign_{sk}, \Verify_{pk}$ satisfying EUF-CMA security.
+\item $\mathbb{C}$ --- claim content (arbitrary byte-strings).
+\item $\mathbb{S}$ --- substrates: a typed union of biological organisms,
+  physical hosts, container images, weights blobs, and similar
+  individuated material configurations.
+\item $\mathbb{L} = \{L_0, L_1, L_2, L_3, L_4, L_5\}$ --- the six
+  accretion layers defined in \Cref{sec:layer-theory}.
+\end{itemize}
+
+\subsection{Definitions}
+
+\begin{definition}[Founding event]\label{def:founding-event}
+A \emph{founding event} is a triple
+$\founding = (s, t_0, \pi)$
+where $s \in \mathbb{S}$ is a substrate, $t_0 \in \mathbb{T}$ is the
+event timestamp, and $\pi$ is a finite set of witnesses (the empty
+set is permitted but reduces verifiability). The founding event marks
+the transition of $s$ from a non-individuated state to an
+individuated locus capable of accreting claims.
+\end{definition}
+
+\begin{definition}[Accretion chain]\label{def:accretion-chain}
+An \emph{accretion chain} relative to founding event
+$\founding = (s, t_0, \pi)$ is a finite sequence
+\[
+\accretion = (a_1, a_2, \ldots, a_n),
+\quad
+a_i = (L_i, t_i, c_i, \sigma_i, \rho_i)
+\]
+where $L_i \in \mathbb{L}$ is the layer tag, $t_i \geq t_0$ is the
+claim timestamp, $c_i \in \mathbb{C}$ is the claim content,
+$\sigma_i$ is either a signature in $\mathbb{K}$ or a relational
+witness, and $\rho_i \in \{1,\ldots,i-1\} \cup \{\bot\}$ is an
+optional reference to a prior claim providing context. The sequence
+is monotone in time: $i < j \Rightarrow t_i \leq t_j$.
+\end{definition}
+
+\begin{definition}[Identity locus]\label{def:identity-locus}
+An \emph{identity locus} is a quadruple
+\[
+\identity = (\substrate, \founding, \accretion, \relations)
+\]
+where $\substrate \in \mathbb{S}$ is its substrate,
+$\founding$ is its founding event,
+$\accretion$ is its accretion chain, and
+$\relations \subseteq \mathbb{I} \times \mathbb{I}$ is its
+relational graph with other identity loci
+(where $\mathbb{I}$ is the universe of all identity loci).
+\end{definition}
+
+\begin{definition}[Verifiable identity]\label{def:verifiable-identity}
+An identity locus $\identity$ is \emph{verifiable at time $t$} iff,
+for every layer-3 (cryptographic) claim $a_i \in \accretion$ with
+$t_i \leq t$, there exists a key $\KDF(\identity, t_i) \in \mathbb{K}$
+such that $\Verify(\KDF(\identity, t_i), c_i, \sigma_i) = 1$ and the
+substrate $\substrate$ retains continuity through the interval
+$[t_0, t]$.
+\end{definition}
+
+\subsection{Axioms}
+
+We posit three axioms that scope the model.
+
+\begin{axiom}[Founding precedence]\label{ax:founding-precedence}
+For every identity locus $\identity$, every claim
+$a_i \in \accretion$ satisfies $t_i \geq t_0$, where
+$t_0$ is the founding timestamp.
+\end{axiom}
+
+\begin{axiom}[Substrate continuity or explicit succession]\label{ax:substrate-continuity}
+An identity locus persists from time $t_a$ to $t_b > t_a$ iff either
+(i)~its substrate $\substrate$ remains individuated and physically
+continuous over $[t_a, t_b]$, or (ii)~there exists a successor
+mapping $\Phi: \identity \to \identity'$ signed by an authority $A$
+appearing in $\relations$, recorded at some
+$t \in [t_a, t_b]$.
+\end{axiom}
+
+\begin{axiom}[Layer independence]\label{ax:layer-independence}
+The six layers in $\mathbb{L}$ are pairwise distinguishable: no claim
+$a_i$ in an accretion chain may simultaneously have two layer tags.
+The failure modes of different layers are statistically independent
+absent explicit coupling (e.g., a single physical device holding both
+Layer~3 and Layer~4 artifacts).
+\end{axiom}
+
+\Cref{ax:founding-precedence,ax:substrate-continuity,ax:layer-independence}
+imply that identity is a well-defined object: it has a beginning,
+a domain of persistence, and a coordinate system in
+$\mathbb{L}$.
+
+\subsection{First theorem: founding uniqueness}
+
+\begin{theorem}[Founding uniqueness]\label{thm:founding-uniqueness}
+For every identity locus $\identity$, exactly one founding event
+$\founding$ exists.
+\end{theorem}
+
+\begin{proof}
+By construction (\Cref{def:identity-locus}), $\identity$ specifies a
+single $\founding$. Suppose for contradiction that two distinct events
+$\founding_1, \founding_2$ both qualify. By
+\Cref{ax:founding-precedence} all claims in $\accretion$ must precede
+neither. If $t_1 < t_2$, then $\founding_2$ would violate the founding
+precedence axiom with respect to claims indexed near $t_1$; if
+$t_1 = t_2$, both events name the same individuation, hence
+$\founding_1 = \founding_2$. Contradiction.
+\end{proof}
+
+\begin{remark}
+\Cref{thm:founding-uniqueness} is the formal restatement of the
+engineering principle that an identity in \texttt{identity-registry}
+\cite{paraxiom-identity-registry} must have a uniquely-recorded
+\texttt{created\_at\_block} and \texttt{created\_by\_tx\_hash}.
+An identity record without a verifiable origin transaction is
+malformed.
+\end{remark}
+
+% =============================================================================
+\section{Layer theory}\label{sec:layer-theory}
+% =============================================================================
+
+We name and motivate the six accretion layers, then prove their
+independence and ordering properties.
+
+\subsection{The six layers}
+
+\begin{description}
+\item[$L_0$: Substrate.] The material continuity --- body, hardware,
+  weights blob. Necessary precondition; identity-bearing in the sense
+  that its destruction ends the locus (subject to
+  \Cref{ax:substrate-continuity}).
+\item[$L_1$: Narrative.] The locus's own claim of continuity:
+  ``I am the same entity that did $X$ yesterday.''
+  Implemented variously as autobiographical memory, persistent state on
+  disk, context window, institutional documentation.
+\item[$L_2$: Relational.] Other accountability loci attest that
+  $\identity$ has continuity. Family, peers, federation members,
+  protocol counterparties.
+\item[$L_3$: Cryptographic.] A keypair (PQ-secured under the model
+  assumptions of \Cref{sec:crypto-substrate}). The first layer that
+  scales without prior relationship.
+\item[$L_4$: Civic.] A jurisdictional attestation: birth
+  certificate, passport, KYC bundle, corporate registration.
+\item[$L_5$: Behavioral.] The cumulative track record of actions
+  taken --- votes, decisions, signed attestations, transferred
+  resources, resolved disputes. Aggregates of $L_3$ and $L_2$ over
+  time.
+\end{description}
+
+\subsection{Diagram of accretion}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[every node/.style={font=\small},
+                    layer/.style={draw=ncrule,fill=nclight,
+                                  rounded corners=2pt,
+                                  minimum width=10cm,
+                                  minimum height=0.6cm,
+                                  inner sep=4pt}]
+  \node[layer] (L0) at (0,0)   {$L_0$ \;\textsf{Substrate}\;(body, hardware, weights)};
+  \node[layer] (L1) at (0,0.9) {$L_1$ \;\textsf{Narrative}\;(self-attested continuity)};
+  \node[layer] (L2) at (0,1.8) {$L_2$ \;\textsf{Relational}\;(witness graph)};
+  \node[layer] (L3) at (0,2.7) {$L_3$ \;\textsf{Cryptographic}\;(PQ keypair)};
+  \node[layer] (L4) at (0,3.6) {$L_4$ \;\textsf{Civic}\;(KYC bundle hash, jurisdictional cert)};
+  \node[layer] (L5) at (0,4.5) {$L_5$ \;\textsf{Behavioral}\;(reputation tokens, activity log)};
+  \draw[dashed,ncrule] (-5.5,-0.45) -- (5.5,-0.45);
+  \node at (0,-0.75) {\itshape Founding individuation event};
+\end{tikzpicture}
+\caption{The six accretion layers above the founding individuation
+event. Each layer can fail independently; combined failure of $k \geq
+4$ layers causes identity dissolution.}
+\label{fig:accretion}
+\end{figure}
+
+\subsection{Layer composition is non-commutative in time}
+
+\begin{proposition}[Layer accretion order is not strict]\label{prop:layer-order}
+The temporal order in which layers accrete is not fixed. An identity
+may acquire $L_3$ before $L_4$ (a private key before legal
+recognition), $L_2$ before $L_1$ (others recognize an organism before
+the organism develops self-narrative), or $L_5$ before $L_3$ (a
+reputation accumulated under pseudonym, later bound to a key).
+\end{proposition}
+
+\Cref{prop:layer-order} is consequential for design: the identity
+registry must permit any layer to be backfilled, not enforce a
+canonical ordering.
+
+% =============================================================================
+\section{Founding events across substrates}\label{sec:founding}
+% =============================================================================
+
+We specialize the founding-event definition to the four canonical
+substrate types.
+
+\subsection{Biological founding}
+
+A human identity begins not at conception (continuous chemical
+process) nor at issuance of the birth certificate (administrative
+echo), but at \emph{first individuation}: the moment after birth at
+which the organism's state is distinguishable from its parents'.
+Witnesses (mother, attending professional) populate the initial
+relational graph $\relations$.
+
+\subsection{Machine founding}
+
+A host's identity begins at first boot, when the kernel writes
+\texttt{/etc/machine-id} via \texttt{systemd-machine-id-setup}, when
+entropy is harvested, and when initial cryptographic material (SSH
+host keys, TPM-derived keys) is established. We discuss the precise
+storage locations and their permanence tiers in \Cref{sec:machine-storage}.
+
+\subsection{Container founding}
+
+A container's identity begins at \texttt{docker run} (or equivalent
+runc/containerd invocation). The image hash supplies $L_0$
+cryptographically; the container ID supplies $L_1$ as the
+self-narrative anchor.
+
+\subsection{LLM founding}
+
+An LLM substrate's identity begins at \emph{weights initialization}:
+two checkpoints trained from different random seeds on identical
+data are distinct substrate identities, even when statistically
+indistinguishable in behavior. An LLM \emph{instance} identity, by
+contrast, begins at \emph{first inference call} on a deployed
+endpoint, when the deployment ID is assigned. We elaborate the
+substrate--instance distinction in \Cref{sec:llm}.
+
+\subsection{Unifying schema}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lllll@{}}
+\toprule
+\textsf{Domain} & \textsf{Substrate $\substrate$} & \textsf{Founding $\founding$} & \textsf{First $L_1$/$L_2$ accretion}\\
+\midrule
+Human    & Body            & Birth                  & Mother, witnesses\\
+Machine  & Hardware        & First boot             & Hostname, SSH host keys\\
+Container & Image           & \texttt{docker run}    & Container ID, mount state\\
+Process  & Code binary     & First invocation       & PID, parent, env\\
+LLM substrate & Architecture + dataset & Weights init    & Checkpoint hash, training log\\
+LLM instance  & Weights         & First inference   & Deployment ID, context\\
+\bottomrule
+\end{tabular}
+\caption{Founding events by substrate domain.}
+\label{tab:founding-schema}
+\end{table}
+
+% =============================================================================
+\section{Machine identity storage}\label{sec:machine-storage}
+% =============================================================================
+
+The model is concrete: machine identity lives in named files,
+registers, and hardware tokens at known locations. Understanding the
+\emph{permanence tier} of each storage location is the engineering
+prerequisite for trusting the resulting identity claim.
+
+\subsection{The four-tier hierarchy}
+
+\begin{definition}[Permanence tier]\label{def:tier}
+A storage location for an identity artifact has \emph{permanence tier}
+$T \in \{0,1,2,3\}$ defined as follows. Tier~$0$ identifiers are
+\emph{manufacturer-fused}: present at production and unchangeable
+without replacing hardware. Tier~$1$ identifiers are
+\emph{installation-rooted}: established at first boot or first
+install, persistent across restarts, lost on reinstall. Tier~$2$
+identifiers are \emph{operationally configured}: persistent across
+restarts but routinely changeable by administrators. Tier~$3$
+identifiers are \emph{runtime-ephemeral}: regenerated each session.
+\end{definition}
+
+\subsection{Tier~0 (manufacturer-fused)}
+
+\begin{itemize}
+\item \textbf{SMBIOS/DMI UUID}: burned at manufacture, queryable via
+  \texttt{dmidecode -s system-uuid}. Resides in firmware tables, not
+  on disk.
+\item \textbf{TPM 2.0 Endorsement Key (EK)}: RSA or ECC keypair burned
+  into the TPM at manufacture, certified by the manufacturer's CA.
+  Root of trust for hardware attestation.
+\item \textbf{Apple Secure Enclave UID, Google Titan-M2 keys,
+  Microsoft Pluton root keys}: per-chip UIDs fused at manufacture,
+  participating in cryptographic operations without exfiltration.
+\item \textbf{Storage device serials}: ATA/NVMe serials per
+  physical disk, surviving reformat.
+\item \textbf{Network MAC addresses}: set per NIC at manufacture but
+  software-spoofable, hence straddling Tier~0 and Tier~3.
+\end{itemize}
+
+\subsection{Tier~1 (installation-rooted)}
+
+\begin{itemize}
+\item \textbf{\texttt{/etc/machine-id}}: 128-bit identifier generated
+  by \texttt{systemd-machine-id-setup} on first boot. The
+  \texttt{systemd} documentation explicitly states that this ID
+  ``should be considered confidential and must not be exposed in
+  untrusted environments,'' and that downstream applications must
+  apply \texttt{sd\_id128\_get\_machine\_app\_specific()} to derive
+  per-application identifiers rather than using the raw value.
+\item \textbf{\texttt{/etc/ssh/ssh\_host\_\{rsa,ecdsa,ed25519\}\_key}}:
+  generated at first SSH daemon configuration. These are the host's
+  first cryptographic identity artifact, anchoring SSH
+  trust-on-first-use and SSHFP DNS records.
+\item \textbf{TPM-owned derived keys}: Storage Root Key, Attestation
+  Identity Keys, platform-bound passkey credentials --- generated at
+  enrollment but cryptographically descended from the Tier-0 EK.
+\item \textbf{Cloud-init instance ID}: at \texttt{/var/lib/cloud/data/
+  instance-id}, mirroring the cloud provider's instance handle.
+\end{itemize}
+
+\subsection{Tier~2 (operationally configured)}
+
+\begin{itemize}
+\item \textbf{\texttt{/etc/hostname}}: human-readable. Conventional
+  primary identifier but cryptographically meaningless on its own.
+\item \textbf{Kerberos host principal keys}
+  (\texttt{/etc/krb5.keytab}); TLS server certificates; WireGuard
+  keypairs; cloud IAM role bindings.
+\end{itemize}
+
+\subsection{Tier~3 (runtime-ephemeral)}
+
+\begin{itemize}
+\item PID, container ID, network state, in-kernel
+  \texttt{struct cred}, namespaces, SELinux/AppArmor labels.
+\end{itemize}
+
+\subsection{Tier monotonicity theorem}
+
+\begin{theorem}[Tier monotonicity]\label{thm:tier-monotonicity}
+Let $P(T)$ denote the unconditional probability that an identifier
+of permanence tier $T$ survives the time interval $[t_0, t_0 + \Delta]$
+for $\Delta$ on the order of a host's installation lifetime
+($\sim$1--10~years). Then
+\[
+P(0) \geq P(1) \geq P(2) \geq P(3),
+\]
+with strict inequality $P(0) > P(3)$.
+\end{theorem}
+
+\begin{proof}
+By \Cref{def:tier} and operational invariants. Tier~0 identifiers
+are unchangeable without hardware replacement; the probability of
+hardware replacement over the operational lifetime defines $1 - P(0)$.
+Tier~1 identifiers are lost on reinstall, with reinstall rate strictly
+greater than hardware-replacement rate; thus $P(1) \leq P(0)$.
+Tier~2 identifiers are changed administratively at rates strictly
+greater than reinstall rate (hostnames, certificates, IAM bindings
+rotate routinely); $P(2) \leq P(1)$. Tier~3 identifiers are lost on
+reboot or session end, occurring at rates dramatically greater than
+administrative configuration rotation; $P(3) \leq P(2)$ with strict
+inequality typical. Strict inequality $P(0) > P(3)$ follows from the
+typical many-orders-of-magnitude separation between hardware lifetime
+and process lifetime.
+\end{proof}
+
+\begin{corollary}[Substrate identifier selection]\label{cor:substrate-selection}
+Given a choice of substrate identifiers available at registration
+time, the post-quantum identity stack should select the
+\emph{lowest-numbered tier available} for the substrate identity
+field. For an agent running on bare metal with TPM, this is the
+TPM-quoted EK identifier; on virtualized hardware, the SMBIOS UUID;
+on containers without TPM passthrough, the container image hash plus
+container ID.
+\end{corollary}
+
+\Cref{cor:substrate-selection} directly informs the
+\texttt{instance\_anchor} field of the agent-identity record:
+\[
+\texttt{instance\_anchor} := \Hash_{\textsf{Blake2-256}}(\text{tier}_{\min} \,\|\, \text{agent\_kind} \,\|\, t_{\mathrm{spawn}}),
+\]
+mixing the lowest-tier available identifier with runtime context to
+produce a stable yet instance-specific anchor.
+
+\subsection{Platform-specific tier locations}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lp{4cm}p{4cm}p{4cm}@{}}
+\toprule
+\textsf{Tier} & \textsf{Linux} & \textsf{macOS} & \textsf{Windows}\\
+\midrule
+0 & SMBIOS UUID; TPM EK; SoC UID & \texttt{IOPlatformUUID}; Secure Enclave UID & SMBIOS UUID; Pluton root\\
+1 & \texttt{/etc/machine-id}; SSH host keys; TPM AIKs &
+    System UUID; Recovery key; Keychain enrollment &
+    \texttt{HKLM\textbackslash...\textbackslash MachineGuid};
+    TPM AIKs\\
+2 & Hostname; krb5 keytab; TLS certs; WireGuard keys &
+    Hostname; user keychain certs; configuration profiles &
+    Computer SID; domain bindings\\
+3 & PID; container ID; namespaces & PID; sandbox ID & PID; session token\\
+\bottomrule
+\end{tabular}
+\caption{Permanence tiers across major operating systems.}
+\label{tab:tier-platforms}
+\end{table}
+
+% =============================================================================
+\section{Agent identity}\label{sec:agent}
+% =============================================================================
+
+\subsection{Three forms of agency}
+
+A \emph{process} is the weakest agency: a running execution context
+with PID, parent, and loaded code. By default it carries no $L_3$
+cryptographic claim; it inherits trust from its parent.
+
+A \emph{container} adds substrate cryptographic anchor by way of
+the image hash, which itself is signed by its publisher.
+
+A \emph{true agent}, in our sense, is a program acting on behalf of a
+principal. It requires:
+\begin{enumerate}
+\item Its own cryptographic identity ($L_3$): a Falcon-512 or
+  SPHINCS+ keypair, generated at first registration.
+\item A delegation chain from the principal ($L_2$): a parent identity
+  in $\relations$ tracing to an $L_4$-anchored or
+  reputation-bonded $L_3$ identity.
+\item Scope bounds: the set of capabilities the agent is authorized
+  for.
+\item Reputation ($L_5$): an accumulated track record.
+\item Revocability: the principal must be able to revoke without
+  cooperation from the agent.
+\end{enumerate}
+
+\subsection{The stratum lattice}
+
+We define a partial order $\prec$ on identity loci. Write
+$\identity_1 \prec \identity_2$ iff $\identity_1$ appears as a
+parent identity for $\identity_2$ in $\relations$.
+
+\begin{definition}[Stratification]\label{def:stratification}
+The \emph{stratification} of an identity space partitions loci into
+five strata:
+\begin{description}
+\item[S1 Person] KYC-rooted human identity. Root of the $\prec$ order.
+\item[S2 Scoped] Person $\times$ tenant $\times$ role. Parent: an S1.
+\item[S3 Vault] Encrypted credential commitments. Held by an S1, S2,
+  or organization S5; not itself an identity-bearing entity but a
+  record attached to one.
+\item[S4 Agent instance] Running agent. Parent: any of S1, S2, or S5.
+\item[S5 Cross-tenant] Organizational aggregate identity. Parent: a
+  multi-signature of S1 founders or jurisdictional authority.
+\end{description}
+\end{definition}
+
+\subsection{Stratum well-foundedness}
+
+\begin{theorem}[Stratum well-foundedness]\label{thm:stratum-wellfounded}
+The relation $\prec$ restricted to S2, S4, S5 identities induces a
+well-founded ordering: every non-S1 identity has an S1 ancestor in
+finitely many $\prec$-steps.
+\end{theorem}
+
+\begin{proof}
+Assume the chain registration policy of \Cref{sec:paraxiom-architecture}:
+every S2/S4 identity registration extrinsic requires a non-null
+\texttt{parent\_identity} pointer, and the registration is
+chain-validated against the existence of the parent. Every S5
+identity registration requires either a multi-signature of S1
+founders or a jurisdictional $L_4$ claim, both of which terminate at
+S1 or at jurisdictional authority (treated as an S1 surrogate).
+Suppose for contradiction an infinite descending chain
+$\identity_0 \succ \identity_1 \succ \identity_2 \succ \ldots$.
+Each $\identity_i$ is recorded on chain with a block height $h_i$,
+and the parent's registration precedes the child's, so
+$h_0 > h_1 > h_2 > \ldots$. This is an infinite descending chain of
+natural numbers --- impossible.
+Hence finite-length termination at S1 (or an S1 surrogate) is
+guaranteed.
+\end{proof}
+
+\Cref{thm:stratum-wellfounded} is the formal restatement of
+``no accountability chain, no identity''
+(\Cref{sec:formal-model}): every action by an S2/S4 identity traces in
+finite steps to a human or jurisdictional accountability locus.
+
+\subsection{Liability follows the chain}
+
+\begin{corollary}[Liability attribution]\label{cor:liability}
+For any action $\alpha$ taken by an identity $\identity$, liability
+attaches to: (i)~$\identity$ itself if it carries a stake or bond;
+(ii)~the parent identity in $\prec$ if $\identity$ is S2 or S4 and
+unable to satisfy the liability; (iii)~recursively to the root S1
+identity, by \Cref{thm:stratum-wellfounded}.
+\end{corollary}
+
+% =============================================================================
+\section{LLM identity}\label{sec:llm}
+% =============================================================================
+
+LLMs are the test case that breaks naive substrate-equals-identity
+reasoning: weights are bit-perfectly copyable.
+
+\subsection{Substrate vs.\ instance}
+
+\begin{definition}[LLM substrate]\label{def:llm-substrate}
+An \emph{LLM substrate} is a tuple $(\mathbf{W}, \tau, A)$ where
+$\mathbf{W}$ is a weights blob, $\tau$ is a tokenizer/architecture
+specification, and $A$ is a training-run attestation. We write
+$\Hash(\mathbf{W})$ for the canonical substrate hash.
+\end{definition}
+
+\begin{definition}[LLM instance]\label{def:llm-instance}
+An \emph{LLM instance} is a tuple
+$(\mathbf{W}_{\mathrm{ref}}, d, c)$ where $\mathbf{W}_{\mathrm{ref}}$
+is a reference to a substrate hash, $d$ is a deployment identifier
+(persistent across restarts), and $c$ is the conversational state.
+\end{definition}
+
+\subsection{Instance non-identity theorem}
+
+\begin{theorem}[LLM instance non-identity]\label{thm:llm-non-identity}
+Two LLM instances $\identity_1 = (\mathbf{W}, d_1, c_1)$ and
+$\identity_2 = (\mathbf{W}, d_2, c_2)$ with identical substrate
+reference but $d_1 \neq d_2$ are distinct identity loci.
+\end{theorem}
+
+\begin{proof}
+By \Cref{def:identity-locus} an identity locus is determined by its
+founding event $\founding$. By \Cref{def:llm-instance} the
+deployment identifier $d$ is established at first inference call, hence
+participates in $\founding$. Since $d_1 \neq d_2$, the founding events
+$\founding_1 \neq \founding_2$, hence by
+\Cref{thm:founding-uniqueness} the identity loci are distinct.
+\end{proof}
+
+\subsection{LLM tier model}
+
+The four-tier permanence hierarchy of \Cref{sec:machine-storage} maps
+to LLM identity:
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lp{10cm}@{}}
+\toprule
+\textsf{Tier} & \textsf{LLM storage location}\\
+\midrule
+0 & Weights hash; training-run Merkle root; architecture spec hash;
+    TEE attestation (Intel TDX / AMD SEV-SNP / NVIDIA H100 confidential
+    computing / Apple Private Cloud Compute) when applicable\\
+1 & Deployment ID; LoRA adapter hash; system-prompt hash; tool/
+    function-call registry\\
+2 & API authentication; rate-limit/quota config; routing config;
+    vector-DB or memory-store binding\\
+3 & Conversation thread ID; context window; tool-call sequence; KV
+    cache\\
+\bottomrule
+\end{tabular}
+\caption{LLM identity by permanence tier (parallel to
+\Cref{tab:tier-platforms}).}
+\label{tab:llm-tiers}
+\end{table}
+
+\subsection{The substrate attestation pallet}
+
+We introduce a candidate runtime pallet,
+\texttt{pallet\_substrate\_attestation}, that records LLM substrate
+provenance on chain. The extrinsic shape:
+
+\begin{lstlisting}[language=rust]
+pub fn attest_substrate(
+    origin: OriginFor<T>,
+    weights_hash: H256,
+    training_run_merkle: H256,
+    arch_spec_hash: H256,
+    publisher_falcon_sig: BoundedVec<u8, ConstU32<2048>>,
+    ipfs_cid_card: BoundedVec<u8, ConstU32<128>>,
+) -> DispatchResult;
+\end{lstlisting}
+
+The pallet binds a weights hash to a training organization's
+Falcon-512 public key. An LLM instance, on registration as an S4
+agent, refers to a published substrate attestation. Verifiers can
+confirm: the running agent claims the substrate that organization $O$
+publicly attested to. The IPFS CID points to the model card and
+training-run log; the on-chain record holds only hashes and the
+publisher signature.
+
+% =============================================================================
+\section{Cryptographic substrate}\label{sec:crypto-substrate}
+% =============================================================================
+
+\subsection{The post-quantum imperative}
+
+A classical signature is a time bomb. Suppose at time $t$ a signature
+$\sigma = \Sign_{sk}(c)$ is produced under classical ECDSA. At time
+$t' > t$, a CRQC becomes available. Any party with access to the
+CRQC can compute a forgery $\sigma^\dagger$ on an arbitrary message
+$c^\dagger$ that verifies under the same public key. From the
+verifier's perspective at $t'$, $\sigma$ and $\sigma^\dagger$ are
+indistinguishable: classical EUF-CMA security collapses retroactively.
+
+Unlike encryption (where session keys can be rotated forward),
+\emph{signatures bound to historical claims cannot be rotated}: once a
+signature is part of the accretion chain, it is part of the record.
+
+\subsection{Cryptographic survival theorem}
+
+Let $\pqset$ denote the set of NIST-standardized post-quantum
+signature schemes
+($\pqset = \{\text{ML-DSA}, \text{SLH-DSA}, \text{FN-DSA}\}$ as of
+2024--2026), and let $\Sigma_{\mathrm{cl}}$ denote classical schemes
+(ECDSA, RSA-PSS, EdDSA).
+
+\begin{theorem}[Cryptographic survival]\label{thm:cryptographic-survival}
+Let $\identity$ be an identity locus with accretion chain $\accretion$
+in which every $L_3$ claim uses some scheme $\Sigma \in \pqset$. Let
+$T_{\mathrm{CRQC}}$ denote the (uncertain) time at which a
+sufficiently-capable CRQC becomes available. Then for any verifier
+inquiring at any time $t > T_{\mathrm{CRQC}}$, the
+EUF-CMA-forgery probability of $\identity$'s accretion chain is
+\[
+\Pr[\text{forgery}] \leq \Negl(\lambda),
+\]
+where $\lambda$ is the post-quantum security parameter of $\Sigma$
+(typically $\geq 128$).
+
+Conversely, if any $L_3$ claim uses
+$\Sigma' \in \Sigma_{\mathrm{cl}}$, then
+\[
+\Pr[\text{forgery}] \geq 1 - \Negl'(\lambda'),
+\]
+where $\Negl'$ characterizes the residual difficulty for the CRQC, and
+the bound is dominated by the classical key length, not the
+post-quantum security parameter.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+The forward direction follows from the EUF-CMA security of
+$\Sigma \in \pqset$ under the post-quantum adversarial model assumed
+in NIST FIPS~203--205~\cite{nist-fips-203,nist-fips-204,nist-fips-205}.
+The reverse direction follows from Shor's
+algorithm~\cite{shor-1994}, which solves discrete-log in $\mathbb{Z}_p^*$
+and elliptic-curve groups in polynomial quantum time, breaking ECDSA
+and RSA-based signatures with overwhelming probability once the CRQC
+operates above the corresponding key-size threshold.
+\end{proof}
+
+\begin{corollary}[Engineering implication]\label{cor:pq-must-now}
+For any accretion chain intended to remain verifiable past
+$T_{\mathrm{CRQC}}$, every $L_3$ claim must be signed under
+$\Sigma \in \pqset$ \emph{at the time the claim is made}. Retrofitting
+PQ signatures onto classical-signed historical claims is impossible:
+the historical signatures already exist and are already forgeable.
+\end{corollary}
+
+\Cref{cor:pq-must-now} is the operational claim that \qh\ implements
+SPHINCS+ (SLH-DSA, FIPS~205) and Falcon-512 (FN-DSA, FIPS draft~206) as
+\emph{primary} signature schemes, not as opt-in upgrades. Every
+identity-bearing transaction is PQ-signed at issuance.
+
+\subsection{Signature size accommodation}
+
+PQ signatures are larger than classical signatures. SPHINCS+-256f-simple
+is 49{,}856~bytes; Ed25519 is 64~bytes. The \paraxiom\ fork of
+\texttt{polkadot-sdk} raises \texttt{MAX\_SIGNATURE\_SIZE} to 50{,}000
+and \texttt{parity-scale-codec}'s
+\texttt{INITIAL\_PREALLOCATION} from 16~KiB to 256~KiB to accommodate
+runtime metadata containing PQ signatures~\cite{paraxiom-mods-manifest}.
+The trade-off (chain storage growth) is intentional: chain history
+must persist; signature size is the cost of identity survival.
+
+% =============================================================================
+\section{Current digital identity landscape (May 2026)}\label{sec:landscape}
+% =============================================================================
+
+The formal model contacts deployed reality. We summarize the state of
+digital identity at the time of writing, drawing on regulator filings,
+standards publications, and operator disclosures. Detailed citations
+are in the bibliography.
+
+\subsection{Civic identity at scale}
+
+\textbf{Estonia.} ID-card, Mobile-ID, Smart-ID. Classical cryptography
+(RSA, ECDSA-P384). Cybernetica contracted in 2026 to author the
+national PQC roadmap as part of the EU joint PQC plan. KSI-blockchain
+audit log is hash-based and quantum-resilient; identity-binding
+primitives are not.
+
+\textbf{India --- Aadhaar.} 1.4~billion enrolled. Authentication
+failure rate $\sim$6.5\% per attempt (Policy Circle, June~2025);
+roughly 20.3~million failed attempts per month. 30~million ration
+cards cancelled due to seeding mismatches. 815~million records
+exposed in 2023; 29{,}000 biometric-cloning fraud incidents in 2024.
+Architecturally a centralized database lookup, not a cryptographic
+credential system. The canonical anti-pattern.
+
+\textbf{EU --- eIDAS~2.0 / EUDI Wallet.} Regulation EU~2024/1183 in
+force May~2024. Implementing acts December~2024. Hard deadline:
+24~December~2026, every Member State must offer at least one EUDI
+Wallet; mandatory acceptance by relying parties December~2027. Wire
+protocols: OpenID4VP~1.0 Final, OpenID4VCI~1.0 Final, HAIP~1.0.
+Credential formats: SD-JWT~VC and ISO~mdoc. PQC on a separate clock:
+high-risk migration by 2030, full by 2035. Identity-wallet PKI
+explicitly flagged as longest-lead-time transition.
+
+\textbf{UK --- GOV.UK One~Login.} 11~million users. Becomes exclusive
+access to central government services by end-2027. Currently lacks
+certification under the UK Digital Identity \& Attributes Trust
+Framework (DIATF) due to a supplier accreditation lapse --- the
+national IDP operating uncertified against the country's own framework.
+
+\textbf{US --- mDL.} No federal ID. State-level under AAMVA
+Implementation Guidelines v1.4--1.5. As of January~2026, 21~states
+plus Puerto Rico operate mDL programs accepted at TSA. ISO~mdoc with
+COSE-signed claims. The only US system with cryptographic primitives
+at meaningful scale.
+
+\textbf{Canada.} Verified.me effectively defunct after SecureKey's
+2022 sale. De-facto trust layer is DIACC's Pan-Canadian Trust
+Framework (PCTF). No federal wallet equivalent to EUDI.
+
+\textbf{Singapore, Brazil, Nigeria.} SingPass ($\sim$5M residents);
+gov.br ($\sim$150M users with centralizing biometric service launched
+2025); Nigeria NIN with biometric General Multipurpose Card from
+January~2025. All architecturally centralized database-lookup; growing
+scale, growing exclusion.
+
+\textbf{Worldcoin / World~ID.} Banned, ordered to delete data, or under
+active investigation in Colombia, Brazil, Thailand, Philippines, Hong
+Kong, Spain, France, Portugal, Argentina, Kenya. Repeated
+regulatory finding: financial incentives ($\$10$--$\$50$ in WLD per
+iris scan) vitiate informed consent under GDPR-style biometric
+regimes. Not a deployable architecture.
+
+\subsection{Self-sovereign identity --- what shipped}
+
+\begin{itemize}
+\item W3C Verifiable Credentials Data Model 2.0 became a W3C
+  Recommendation on 15~May~2025.
+\item W3C DIDs Core 1.1 reached Candidate Recommendation Snapshot on
+  5~March~2026; DID Resolution split into separate v0.3.
+\item OpenID4VP~1.0 Final and OpenID4VCI~1.0 Final published
+  July~2025; HAIP~1.0 Final December~2025. Selected as eIDAS~2.0
+  ARF wire protocols.
+\item Hyperledger Aries archived April~2025; components migrated to
+  the OpenWallet Foundation.
+\item \texttt{did:web} is the only DID method with material non-toy
+  adoption (UN Transparency Protocol, Microsoft Entra Verified ID).
+  \texttt{did:ion} lost momentum.
+\end{itemize}
+
+The deployed SSI surface is \texttt{did:web} plus OpenID4VP/VCI plus
+SD-JWT~VC or ISO~mdoc. Everything else remains research-track.
+
+\subsection{Blockchain-anchored identity}
+
+ENS retains the only material adoption (1.7M+ domains; ENSv2 mainnet
+February~2026). Sismo wound down late~2024. Spruce~ID pivoted to
+government mDL integrations and now operates chain-agnostically.
+Proof-of-personhood remains unsolved with no production winner.
+
+\subsection{Hardware-rooted identity}
+
+\begin{itemize}
+\item WebAuthn / Passkeys / FIDO2: more than 1~billion users with at
+  least one passkey activated; more than 15~billion accounts support
+  passkeys. Apple/Google/Microsoft alignment held through 2025; FIDO
+  CTAP~2.2 advanced cross-platform portability. HID/FIDO 2025
+  enterprise survey reports 87\% of enterprises actively deploying
+  passkeys.
+\item DICE (Device Identifier Composition Engine, TCG specification):
+  now the dominant root-of-trust pattern on constrained devices.
+\item Apple Secure Enclave, Google Titan-M2, Microsoft Pluton: all
+  baseline shipping on consumer devices.
+\item Intel SGX: effectively abandoned for client-side use; deprecated
+  on 11th-generation+ consumer CPUs. Server-side use shifted to Intel
+  TDX and AMD SEV-SNP. ARM CCA Realms ships in Armv9.
+\end{itemize}
+
+\subsection{Post-quantum cryptography status}
+
+\begin{itemize}
+\item NIST FIPS~203 (ML-KEM), 204 (ML-DSA), 205 (SLH-DSA) published
+  13~August~2024. FIPS~206 (FN-DSA / Falcon) in draft.
+\item HQC announced March~2025 as second KEM (backup to ML-KEM).
+\item US OMB PQC migration guidance, required within one year of NIST
+  standards, was overdue as of May~2026: still in draft.
+\item NSA CNSA~2.0: PQC required for National Security Systems by
+  2030; classical algorithms prohibited by 2035.
+\item EU joint PQC roadmap (June~2025): national strategies by
+  end-2026; high-risk migration by 2030; full by 2035.
+\item \textbf{No major civic identity system runs PQC signatures in
+  production as of May~2026.}
+\end{itemize}
+
+\subsection{AI agent identity --- the open lane}
+
+\begin{itemize}
+\item Agentic AI Foundation (Linux Foundation) launched
+  December~2025. Anthropic contributed MCP; OpenAI contributed
+  AGENTS.md; Block contributed Goose.
+\item MCP authorization standardized OAuth 2.1 + PKCE in
+  March~2025; the November~2025 release added a \emph{server
+  identity} primitive.
+\item Google A2A protocol (April~2025) uses workload-identity
+  federation: short-lived cryptographically verifiable credentials.
+\item IETF Web Bot Auth draft (Cloudflare-backed) signs HTTP requests
+  with private keys plus a published directory.
+\item GNAP (RFC~9635, October~2024): most plausible OAuth successor
+  for delegated agent authorization; minimal vendor uptake.
+\item Model substrate attestation: \emph{no agreed standard}. NVIDIA
+  H100/B200, AMD SEV-SNP, Intel TDX supply hardware; the protocol
+  layer is open.
+\end{itemize}
+
+The state of AI agent identity in 2026 is comparable to the state of
+SSI in 2018: many overlapping proposals, no production winner, vendors
+shipping ahead of standards.
+
+\subsection{Positioning fit for \paraxiom}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lp{5cm}p{5cm}c@{}}
+\toprule
+\textsf{Layer} & \textsf{Industry default 2026} & \textsf{\paraxiom\ choice} & \textsf{Lane}\\
+\midrule
+Wallet protocol & OID4VP/VCI + HAIP & Implement OID4VP-compatible verifier & Track\\
+Credential format & SD-JWT~VC + ISO mdoc & Support both for export & Track\\
+DID method & \texttt{did:web} for interop & \texttt{did:web} + QH-anchored method & Track + extend\\
+Signature crypto & RSA / ECDSA (classical) & SPHINCS+ / Falcon-512 (PQ) & \textbf{Lead}\\
+Hardware root & Apple SE / Titan-M2 / Pluton & Same + DICE for edge & Track\\
+Agent identity & MCP + OAuth 2.1 (early) & MCP + Falcon-signed + on-chain & \textbf{Lead}\\
+Model attestation & None (open) & \texttt{pallet\_substrate\_attestation} & \textbf{Lead}\\
+Trust framework & EU eIDAS / DIACC / state & Chain-native, bridge to civic & Sovereign\\
+\bottomrule
+\end{tabular}
+\caption{\paraxiom\ positioning against the 2026 landscape. Three
+uncontested lanes: post-quantum civic-grade identity, agent
+cryptographic identity, model substrate attestation.}
+\label{tab:positioning}
+\end{table}
+
+% =============================================================================
+\section{The \paraxiom\ architecture}\label{sec:paraxiom-architecture}
+% =============================================================================
+
+We now describe the engineering realization.
+
+\subsection{Three-tier system}
+
+The \paraxiom\ identity stack is decomposed into three layers of
+storage with three distinct trust and performance profiles:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textsf{Layer} & \textsf{Holds} & \textsf{Speed} & \textsf{Mutability}\\
+\midrule
+\qh\ chain & Identity records, hashes, CIDs, commitments, signatures & Slow & Append-only\\
+IPFS & Encrypted payloads, KYC bundles, vault ciphertext & Medium & Immutable (by CID)\\
+Postgres + Redis & Denormalized indexes, query caches & Fast & Rebuildable mirror\\
+\bottomrule
+\end{tabular}
+\caption{The three storage layers of the \paraxiom\ identity stack.}
+\label{tab:three-tier}
+\end{table}
+
+The chain is the source of truth for cryptographic claims. IPFS is
+the canonical bulk-payload store, content-addressed by CID. The
+Postgres+Redis mirror is rebuildable from chain plus IPFS without
+information loss (modulo unrecoverable plaintexts, which are protected
+by deletion of the master key per \Cref{thm:crypto-shredding}).
+
+\subsection{Identity strata}
+
+The five strata of \Cref{def:stratification} are realized on chain
+through the existing
+\texttt{identity-registry} pallet (extended) and a small number of
+companion pallets:
+
+\begin{lstlisting}[language=rust]
+pub struct Identity<AccountId, BlockNumber> {
+    pub id: u64,
+    pub owner: AccountId,
+    pub public_key: BoundedVec<u8, ConstU32<2048>>,
+    pub role: IdentityRole,
+    pub status: IdentityStatus,
+    pub reputation_bps: u32,
+    pub created_at_block: BlockNumber,
+    pub created_by_tx_hash: H256,
+    pub key_rotation_history: BoundedVec<KeyRotation, ConstU32<32>>,
+
+    /// Stratum tag (S1, S2, S4, S5).
+    pub stratum: Stratum,
+
+    /// Parent identity for S2 and S4 (required by Theorem 6.2).
+    pub parent_identity: Option<u64>,
+
+    /// Tenant context for S2.
+    pub tenant_id: Option<BoundedVec<u8, ConstU32<64>>>,
+
+    /// Custody mode (SelfSovereign / NcCustodial / TenantCustodial).
+    pub custody: CustodyMode,
+
+    /// KYC bundle hash for S1 (Falcon-signed by KYC issuer).
+    pub kyc_bundle_hash: Option<[u8; 32]>,
+
+    /// Instance anchor for S4 agents (per Corollary 5.1).
+    pub instance_anchor: Option<[u8; 32]>,
+}
+\end{lstlisting}
+
+\subsection{Companion pallets}
+
+\begin{description}
+\item[\texttt{pallet-onboarding-commit}] (extended): a generalized
+  commit-reveal flow with bond and slashable dispute window. Used to
+  bootstrap new S1 identities, agent S4 identities, and validators.
+\item[\texttt{axiom-attestation}] (extended): on-chain Falcon-signed
+  attestations with IPFS CIDs for full payloads. Extended with a
+  \texttt{VerifierKind} enum to dispatch question-generation,
+  PR-code-review, vault-commitment, persona-attestation, and existing
+  Axiom-task variants.
+\item[\texttt{pallet-credential-vault}] (new): on-chain commitments to
+  off-chain envelope-encrypted credentials. Stores
+  \texttt{(ciphertext\_cid, ciphertext\_hash, iv\_hint, service, kind,
+  created\_at, revoked\_at)}.
+\item[\texttt{pallet-reputation-tokens}] (new): soulbound earned
+  reputation tokens with minting policies indexed by behavior. Distinct
+  from the governance-adjustable \texttt{reputation\_bps} of the
+  identity registry.
+\item[\texttt{pallet-substrate-attestation}] (new): per
+  \Cref{sec:llm}, publishes LLM weights provenance on chain.
+\end{description}
+
+\subsection{Credential vault flow}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[every node/.style={font=\small},
+                    box/.style={draw=ncrule,fill=nclight,
+                                rounded corners=2pt,
+                                minimum width=4cm,
+                                minimum height=0.7cm,
+                                inner sep=4pt},
+                    arrow/.style={->,>=Stealth,thick,ncaccent}]
+  \node[box] (a) at (0,4)  {Plaintext credential};
+  \node[box] (b) at (0,3)  {Envelope: $iv \| tag \| ct$};
+  \node[box] (c) at (0,2)  {IPFS pin $\rightarrow$ CID};
+  \node[box] (d) at (0,1)  {On-chain commitment record};
+  \draw[arrow] (a) -- node[right]{AES-256-GCM with user master key} (b);
+  \draw[arrow] (b) -- node[right]{$\Hash$ and pin} (c);
+  \draw[arrow] (c) -- node[right]{Extrinsic with CID + hash} (d);
+\end{tikzpicture}
+\caption{Credential vault encryption flow. Plaintext never leaves the
+client (\emph{v0.2+}) or server boundary (\emph{v0.1}); IPFS holds
+ciphertext only; chain holds commitment.}
+\label{fig:vault-flow}
+\end{figure}
+
+\subsection{Crypto-shredding completeness}
+
+A key correctness property of the credential vault: revocation through
+master-key deletion must render all encrypted credentials inaccessible,
+\emph{even if the ciphertext remains pinned to IPFS}.
+
+\begin{theorem}[Crypto-shredding completeness]\label{thm:crypto-shredding}
+Let $k$ be a master key over a strongly-secure AEAD scheme (AES-256-GCM
+under the standard model). Let $\{C_1, \ldots, C_n\}$ be a set of
+ciphertexts $C_i = \Enc_k(m_i, iv_i)$ for messages $m_i$ and unique
+nonces $iv_i$. Suppose $k$ is securely erased from all storage
+controlled by the holder. Then, for any computationally-bounded
+adversary $\mathcal{A}$ with access to all $C_i$ but not to $k$,
+\[
+\Pr\bigl[\mathcal{A}(C_1, \ldots, C_n) = m_i \bigr] \leq \frac{1}{|\mathcal{M}|} + \Negl(\lambda),
+\]
+where $\mathcal{M}$ is the plaintext domain and $\lambda$ is the AEAD
+security parameter.
+\end{theorem}
+
+\begin{proof}
+By the IND-CPA security of AES-256-GCM under the standard model.
+$\Negl(\lambda)$ is the adversary's IND-CPA advantage at security
+parameter $\lambda = 256$. Crucially, AES-256-GCM's security guarantee
+binds the security to key secrecy, not to ciphertext exclusivity:
+public ciphertext does not weaken the bound. Erasing $k$ thus removes
+all information-theoretic distinguishability from the chosen-message
+oracle.
+\end{proof}
+
+\begin{corollary}[CCPA crypto-shredding]\label{cor:ccpa}
+Compliance with right-to-erasure obligations (CCPA \S1798.105, GDPR
+Art.~17) can be discharged by deleting the user's master key from all
+holder-controlled stores, without requiring unpinning of IPFS-resident
+ciphertexts.
+\end{corollary}
+
+\subsection{Sync mechanism}
+
+The Postgres+Redis mirror in the gov-app subscribes to chain events
+via Substrate's WebSocket RPC. Events from \texttt{identity-registry},
+\texttt{axiom-attestation}, \texttt{pallet-reputation-tokens}, and
+\texttt{pallet-credential-vault} are decoded and applied to the
+relational schema; Redis caches are invalidated on the keyed indexes.
+
+\subsection{Verifier at action time}
+
+\begin{theorem}[Verification-time accountability]\label{thm:verify-action-time}
+Let $\identity$ be an identity attempting an action $\alpha$ at time
+$t$. The \texttt{verify\_chain}$(\identity, \alpha, t)$ helper returns
+$\top$ iff (i)~$\identity$ has an active $L_3$ key at $t$, (ii)~$\identity$'s
+$\prec$-ancestry terminates in finite steps at an S1 with a non-empty
+$L_4$ claim or in a stake-bonded entity, and (iii)~$\identity$'s
+$L_5$ reputation satisfies the action's minimum threshold $\theta_\alpha$.
+\end{theorem}
+
+\begin{proof}
+Conditions (i) and (iii) are checked by direct query against
+\texttt{identity-registry} and \texttt{pallet-reputation-tokens}.
+Condition~(ii) terminates in finite steps by
+\Cref{thm:stratum-wellfounded}.
+\end{proof}
+
+% =============================================================================
+\section{Future scenarios}\label{sec:future}
+% =============================================================================
+
+We project three scenarios for the trajectory of identity past 2030.
+
+\subsection{Dissolution}
+
+Identity collapses if (a)~AI agents proliferate faster than
+accountability chains can be maintained; (b)~CRQC arrives before
+PQC migration completes for civic-identity infrastructure;
+(c)~states lose capacity to issue civic identity; (d)~privacy norms
+preclude reputation tracking. Non-zero probability; the canonical
+reason this work is timely.
+
+\subsection{Fragmentation}
+
+Identity persists but jurisdictionalizes: each major bloc operates
+its own infrastructure with limited interoperability. This is the
+trajectory the world is presently on. \paraxiom's chain-native,
+state-agnostic substrate functions as a bridge across fragmented
+zones, attesting to jurisdictional claims when needed via
+\texttt{kyc\_bundle\_hash} but not depending on any single
+jurisdiction's continued existence.
+
+\subsection{Augmentation}
+
+Identity extends: humans, agents, swarms, organizations, protocols
+all carry first-class cryptographic identity with explicit
+accountability chains and portable reputation. The five-stratum design
+of \Cref{def:stratification} is a first draft of an augmented identity
+ontology; further strata (swarm, protocol, hybrid) extend the schema.
+
+The outcome among these three depends not on inevitability but on
+what is built. Dissolution occurs by default if no one builds the
+infrastructure; fragmentation if states build it without
+interoperability; augmentation if deliberate choice produces
+post-quantum, decentralized, accountability-preserving substrates.
+
+% =============================================================================
+\section{Implementation roadmap}\label{sec:roadmap}
+% =============================================================================
+
+We sequence the engineering work.
+
+\begin{enumerate}
+\item \textbf{Identity-registry extensions} ($\sim$3 days).
+  Non-breaking; ships first. Adds stratum, parent\_identity, tenant\_id,
+  custody, kyc\_bundle\_hash, instance\_anchor fields.
+\item \textbf{pallet-onboarding-commit generalization} ($\sim$2 days).
+  Per-role bonds; supports S1/S4/validator commit-reveal.
+\item \textbf{axiom-attestation VerifierKind extension} ($\sim$2 days).
+  Adds QuestionGen, PrCodeReview, VaultCommitment, PersonaAttestation
+  variants alongside the existing AxiomTask.
+\item \textbf{pallet-credential-vault} ($\sim$3 days). On-chain
+  commitments to IPFS-resident encrypted credentials. Realizes
+  \Cref{thm:crypto-shredding}.
+\item \textbf{pallet-reputation-tokens} ($\sim$4 days). Earned,
+  soulbound, threshold-minted tokens.
+\item \textbf{pallet-substrate-attestation} ($\sim$3 days). Per
+  \Cref{sec:llm}, publishes LLM substrate provenance.
+\item \textbf{Gov-app event subscriber} ($\sim$5 days). Subxt or
+  Polkadot.js client; consumes chain events; populates Postgres mirror.
+\item \textbf{Spec version bump + on-chain migration} ($\sim$3 days).
+  Migrates existing identities to the extended schema.
+\end{enumerate}
+
+Total estimated effort: 3--4 weeks of focused work, parallelizable
+with gov-app v0.2 work that depends on the migrated schema.
+
+% =============================================================================
+\section{Conclusion}\label{sec:conclusion}
+% =============================================================================
+
+Identity is engineering. The accountability chain does not extend
+itself; the post-quantum signatures do not sign themselves; the
+strata do not enumerate themselves. The substrates we now share with
+machines and AI agents will, by the early 2030s, demand identity
+infrastructure that survives a quantum-cryptographic transition, that
+scales without requiring social acquaintance, that holds open the
+possibility of new kinds of accountability loci we cannot fully
+enumerate today.
+
+We have stated identity formally as a layered accountability chain
+above a founding individuation event, proven four invariants
+(founding uniqueness, tier monotonicity, cryptographic survival,
+crypto-shredding completeness), surveyed the 2026 deployed landscape
+and located \paraxiom's three uncontested lanes (PQ civic-grade,
+agent cryptographic identity, model substrate attestation), and
+specified the on-chain plus IPFS plus mirror architecture that
+realizes the model.
+
+The question with which this treatise was commissioned --- ``will we
+have identity in the future?'' --- admits a precise answer. Yes, if
+built. The pallets specified in \Cref{sec:paraxiom-architecture} are
+the construction.
+
+% =============================================================================
+\appendix
+
+\section{Detailed proofs}\label{app:proofs}
+
+\subsection{Founding uniqueness (full)}
+
+\begin{proof}[Full proof of \Cref{thm:founding-uniqueness}]
+We argue from \Cref{def:identity-locus}, \Cref{def:founding-event},
+and \Cref{ax:founding-precedence}.
+
+Let $\identity = (\substrate, \founding, \accretion, \relations)$ be
+an identity locus and suppose for contradiction that there exist two
+founding-event candidates $\founding_1 = (s, t_0^{(1)}, \pi_1)$ and
+$\founding_2 = (s, t_0^{(2)}, \pi_2)$, both consistent with
+$\identity$ in the sense that every claim in $\accretion$ post-dates
+the candidate's timestamp.
+
+Case 1: $t_0^{(1)} < t_0^{(2)}$. Then there exist points in time
+$t \in (t_0^{(1)}, t_0^{(2)})$ at which $\substrate$ was already
+individuated relative to $\founding_1$ but, by hypothesis, not yet
+individuated relative to $\founding_2$. Any claim made in this
+interval --- and \Cref{ax:founding-precedence} permits such claims to
+exist in $\accretion$ relative to $\founding_1$ --- would violate
+\Cref{ax:founding-precedence} relative to $\founding_2$. Either
+$\founding_2$ does not consistently anchor $\identity$, or no claims
+exist in the interval (in which case $t_0^{(2)}$ can be taken as
+$t_0^{(1)}$ without loss of information). In both sub-cases we
+collapse to a single founding event.
+
+Case 2: $t_0^{(1)} = t_0^{(2)}$. Then both events name the same
+moment of individuation of the same substrate; up to the witness set,
+they coincide. The witness sets may be merged: $\pi = \pi_1 \cup
+\pi_2$ produces the most informative single $\founding$, and the
+two-event presentation reduces to a single-event presentation.
+
+In both cases the two candidates collapse to one, contradicting the
+assumption of distinctness.
+\end{proof}
+
+\subsection{Stratum well-foundedness (full)}
+
+\begin{proof}[Full proof of \Cref{thm:stratum-wellfounded}]
+We rely on three facts about the chain registration protocol:
+\begin{enumerate}
+\item Every S2 or S4 registration extrinsic requires a non-null
+  \texttt{parent\_identity} field; the chain validates that the named
+  parent exists prior to applying the registration.
+\item S5 registration requires either a multi-signature attestation
+  of S1 founders or a jurisdictional $L_4$ claim. Both terminate
+  finitely at S1 or at a jurisdictional authority treated as an S1
+  surrogate.
+\item Every identity in \texttt{identity-registry} carries a
+  \texttt{created\_at\_block} field, strictly less than the block in
+  which any of its children are registered.
+\end{enumerate}
+
+Suppose for contradiction an infinite descending chain
+$\identity_0 \succ \identity_1 \succ \identity_2 \succ \ldots$. By
+fact~3, $\mathrm{block}(\identity_0) > \mathrm{block}(\identity_1) >
+\mathrm{block}(\identity_2) > \ldots$, an infinite strictly
+decreasing sequence in $\mathbb{N}$, which is impossible.
+
+Thus every descending chain terminates in finite steps. By facts~1
+and~2, the terminus is either an S1 or an S1 surrogate. In either
+case, finite-step termination at an S1-equivalent is guaranteed.
+\end{proof}
+
+\subsection{Cryptographic survival (full)}
+
+\begin{proof}[Full proof of \Cref{thm:cryptographic-survival}]
+\textbf{Forward direction.} For $\Sigma \in \pqset$ each scheme has
+been demonstrated EUF-CMA-secure against any polynomial-time quantum
+adversary under the standard model, per the security reductions
+underlying NIST FIPS~203--205. Let $\mathcal{Q}$ be such a quantum
+adversary with running time bounded by $\mathrm{poly}(\lambda)$. The
+EUF-CMA security definition states:
+\[
+\Pr[\mathrm{EUF\text{-}CMA}_{\mathcal{Q}}(\Sigma, \lambda) = 1] \leq \Negl(\lambda).
+\]
+This implies that the probability of any forgery against any single
+claim $a_i$ in $\accretion$ is at most $\Negl(\lambda)$. By a union
+bound over the $n$ claims, the probability of any forgery anywhere
+in $\accretion$ is at most $n \cdot \Negl(\lambda)$, which remains
+negligible for any polynomial-size $\accretion$.
+
+\textbf{Reverse direction.} For $\Sigma' \in \Sigma_{\mathrm{cl}}$,
+Shor's algorithm~\cite{shor-1994} solves the discrete logarithm
+problem in $\mathbb{Z}_p^*$ and on elliptic curves over $\mathbb{F}_p$
+in time polynomial in $\log p$. Given a CRQC of size sufficient to
+implement Shor at the relevant key size, the adversary can recover
+$sk$ from $pk$ with probability $1 - \Negl'(\lambda')$, after which
+forgery is trivial via $\Sign_{sk}$. The probability bound on forgery
+is hence at least $1 - \Negl'(\lambda')$, where $\Negl'(\lambda')$ is
+characterized by the CRQC's residual error, dominated by the
+classical key length $\lambda'$.
+
+\end{proof}
+
+\subsection{Crypto-shredding completeness (full)}
+
+\begin{proof}[Full proof of \Cref{thm:crypto-shredding}]
+We reduce to the IND-CPA security of AES-256-GCM. Suppose for
+contradiction that $\mathcal{A}$ achieves
+\[
+\Pr[\mathcal{A}(C_1, \ldots, C_n) = m_i] > \frac{1}{|\mathcal{M}|} + \epsilon
+\]
+for non-negligible $\epsilon$, for some target index $i$. Construct
+an IND-CPA adversary $\mathcal{B}$ against AES-256-GCM as follows:
+$\mathcal{B}$ receives an IND-CPA challenge oracle, queries it on
+all $\{m_1, \ldots, m_n\}$ to obtain ciphertexts identically
+distributed to those $\mathcal{A}$ would receive, then runs
+$\mathcal{A}$ on these ciphertexts. The output of $\mathcal{B}$ is
+$\mathcal{A}$'s output.
+
+If $\mathcal{A}$ recovers $m_i$ with advantage $\epsilon$ over the
+$1/|\mathcal{M}|$ baseline, then $\mathcal{B}$ distinguishes the
+IND-CPA challenge with the same advantage. By IND-CPA security of
+AES-256-GCM, this advantage is bounded by $\Negl(\lambda)$ where
+$\lambda = 256$ is the AES key length. Hence $\epsilon \leq
+\Negl(\lambda)$, contradicting the supposed non-negligibility.
+\end{proof}
+
+\section{Pallet API specifications}\label{app:pallet-api}
+
+\subsection{\texttt{identity-registry} (extended)}
+
+\begin{lstlisting}[language=rust]
+pub enum Stratum { S1Person, S2Scoped, S4AgentInstance, S5CrossTenant }
+
+pub enum CustodyMode { SelfSovereign, NcCustodial, TenantCustodial }
+
+pub enum IdentityRole {
+    Shield, Agent, OracleReporter, Validator,
+    Citizen, Decideur, Fournisseur, Service,
+}
+
+pub enum IdentityStatus {
+    Active, Suspended, Revoked, Deceased, Decommissioned, Dissolved
+}
+
+/// Register an S1 identity, optionally with KYC bundle.
+pub fn register_identity_s1(
+    origin: OriginFor<T>,
+    public_key: BoundedVec<u8, ConstU32<2048>>,
+    kyc_bundle_hash: Option<[u8; 32]>,
+    custody: CustodyMode,
+) -> DispatchResult;
+
+/// Delegate to a scoped S2 identity from a caller S1.
+pub fn delegate_to_scope(
+    origin: OriginFor<T>,
+    tenant_id: BoundedVec<u8, ConstU32<64>>,
+    role: IdentityRole,
+) -> DispatchResult;
+
+/// Register an S4 agent instance under a parent identity.
+pub fn register_agent_instance(
+    origin: OriginFor<T>,
+    parent_identity: u64,
+    agent_kind: BoundedVec<u8, ConstU32<64>>,
+    public_key: BoundedVec<u8, ConstU32<2048>>,
+    instance_anchor: [u8; 32],
+) -> DispatchResult;
+
+/// Verify the accountability chain for an action.
+pub fn verify_chain(
+    identity_id: u64,
+    action_kind: ActionKind,
+    block: BlockNumberFor<T>,
+) -> Result<ChainVerdict, DispatchError>;
+\end{lstlisting}
+
+\subsection{\texttt{pallet-credential-vault}}
+
+\begin{lstlisting}[language=rust]
+pub struct Commitment<BlockNumber> {
+    pub holder_identity: u64,
+    pub service_name: BoundedVec<u8, ConstU32<64>>,
+    pub credential_kind: CredentialKind,
+    pub ciphertext_cid: BoundedVec<u8, ConstU32<128>>,
+    pub ciphertext_hash: [u8; 32],
+    pub iv_hint: [u8; 12],
+    pub created_at: BlockNumber,
+    pub revoked_at: Option<BlockNumber>,
+}
+
+pub fn commit(
+    origin: OriginFor<T>,
+    service_name: BoundedVec<u8, ConstU32<64>>,
+    credential_kind: CredentialKind,
+    ciphertext_cid: BoundedVec<u8, ConstU32<128>>,
+    ciphertext_hash: [u8; 32],
+    iv_hint: [u8; 12],
+) -> DispatchResult;
+
+pub fn revoke(
+    origin: OriginFor<T>,
+    commitment_id: u64,
+) -> DispatchResult;
+
+pub fn attest_use(
+    origin: OriginFor<T>,
+    commitment_id: u64,
+    caller_context: BoundedVec<u8, ConstU32<128>>,
+) -> DispatchResult;
+\end{lstlisting}
+
+\subsection{\texttt{pallet-substrate-attestation}}
+
+\begin{lstlisting}[language=rust]
+pub struct SubstrateAttestation<BlockNumber> {
+    pub weights_hash: H256,
+    pub training_run_merkle: H256,
+    pub arch_spec_hash: H256,
+    pub publisher: u64,                // identity-registry ID
+    pub publisher_sig: BoundedVec<u8, ConstU32<2048>>,
+    pub ipfs_cid_card: BoundedVec<u8, ConstU32<128>>,
+    pub published_at: BlockNumber,
+    pub revoked_at: Option<BlockNumber>,
+}
+
+pub fn attest_substrate(
+    origin: OriginFor<T>,
+    weights_hash: H256,
+    training_run_merkle: H256,
+    arch_spec_hash: H256,
+    publisher_falcon_sig: BoundedVec<u8, ConstU32<2048>>,
+    ipfs_cid_card: BoundedVec<u8, ConstU32<128>>,
+) -> DispatchResult;
+\end{lstlisting}
+
+\section{Sources}\label{app:sources}
+
+\begin{thebibliography}{99}
+
+\bibitem{nist-fips-203} National Institute of Standards and Technology.
+\emph{FIPS~203: Module-Lattice-Based Key-Encapsulation Mechanism
+Standard.} U.S.\ Department of Commerce, 13~August~2024.
+
+\bibitem{nist-fips-204} National Institute of Standards and Technology.
+\emph{FIPS~204: Module-Lattice-Based Digital Signature Standard.}
+U.S.\ Department of Commerce, 13~August~2024.
+
+\bibitem{nist-fips-205} National Institute of Standards and Technology.
+\emph{FIPS~205: Stateless Hash-Based Digital Signature Standard.}
+U.S.\ Department of Commerce, 13~August~2024.
+
+\bibitem{shor-1994} P.~W. Shor. \emph{Algorithms for quantum
+computation: discrete logarithms and factoring.} Proceedings of the
+35th Annual Symposium on Foundations of Computer Science (FOCS),
+1994.
+
+\bibitem{eidas-2024-1183} European Parliament and Council. \emph{Regulation
+(EU)~2024/1183 amending Regulation (EU) No~910/2014 as regards
+establishing the European Digital Identity Framework (eIDAS~2.0).}
+Official Journal of the European Union, May~2024.
+
+\bibitem{mcp-spec-2025-11} Anthropic. \emph{Model Context Protocol
+Specification, Release 2025-11-25.} \url{https://modelcontextprotocol.io/}
+
+\bibitem{google-a2a} Google. \emph{Agent-to-Agent (A2A) Protocol.}
+Published April~2025.
+
+\bibitem{paraxiom-mods-manifest} Paraxiom Technologies Inc.\
+\emph{PARAXIOM-MODIFICATIONS.md: canonical fork-change manifest for
+polkadot-sdk and parity-scale-codec.} \qh\ repository, 2026.
+
+\bibitem{paraxiom-identity-registry} Paraxiom Technologies Inc.\
+\emph{pallet-identity-registry source code.} \qh\ pallets directory,
+2026.
+
+\bibitem{aamva-mdl-15} American Association of Motor Vehicle
+Administrators. \emph{Mobile Driver License Implementation Guidelines
+v1.5.} May~2026.
+
+\bibitem{w3c-vcdm-2} World Wide Web Consortium. \emph{Verifiable
+Credentials Data Model 2.0 (W3C Recommendation).} 15~May~2025.
+
+\bibitem{w3c-did-1-1} World Wide Web Consortium. \emph{Decentralized
+Identifiers (DIDs) v1.1 (W3C Candidate Recommendation Snapshot).}
+5~March~2026.
+
+\bibitem{openid-vp-1} OpenID Foundation. \emph{OpenID for Verifiable
+Presentations 1.0 (Final).} July~2025.
+
+\bibitem{openid-vci-1} OpenID Foundation. \emph{OpenID for Verifiable
+Credential Issuance 1.0 (Final).} July~2025.
+
+\bibitem{nsa-cnsa-2} National Security Agency. \emph{Commercial
+National Security Algorithm Suite 2.0.} U.S.\ Department of Defense,
+September~2022 (updated 2025).
+
+\bibitem{enisa-pqc} European Union Agency for Cybersecurity. \emph{Post-
+Quantum Cryptography: Current State and Quantum Mitigation.} ENISA,
+2025.
+
+\bibitem{tcg-dice} Trusted Computing Group. \emph{Device Identifier
+Composition Engine (DICE) Architectures.} TCG Specification,
+2024 revision.
+
+\bibitem{policy-circle-aadhaar} Policy Circle. \emph{Aadhaar authentication
+failures persist after a decade.} June~2025.
+
+\bibitem{linux-foundation-aaif} Linux Foundation. \emph{Agentic AI
+Foundation launch announcement.} December~2025.
+
+\end{thebibliography}
+
+\bigskip
+
+\noindent\emph{Document version}: 1.0, May~15,~2026.
+\emph{Companion materials}:
+\texttt{IDENTITY-ARCHITECTURE.md} (narrative version);
+\texttt{IDENTITY-PALLETS-DESIGN.md} (engineering specification);
+\texttt{GOVERNANCE-ROADMAP.md} \S{}10 (product roadmap).
+\emph{Repository}: \url{https://github.com/Paraxiom/quantumharmony} and
+companion documents in the NeoCarbone lovable-bridge repository.
+
+\end{document}
