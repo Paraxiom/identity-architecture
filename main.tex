@@ -1785,6 +1785,358 @@ Condition~(ii) terminates in finite steps by
 \end{proof}
 
 % =============================================================================
+\section{Privacy, anonymity, and user-controlled disclosure}\label{sec:privacy}
+% =============================================================================
+
+The architecture described in
+\Cref{sec:paraxiom-architecture}, taken alone, is
+\emph{transparency-by-default}: identity registrations, governance
+memberships, reputation tokens, and attestations are all visible on
+chain. A passive observer can reconstruct a substantial behavioral
+graph: who participates where, who has what reputation, who attested
+to whom.
+
+This is the correct \emph{baseline}: cryptographic accountability is
+worthless if it cannot be audited. But it is not the correct
+\emph{end state}. A complete architecture must let an identity
+\emph{choose what is revealed, to whom, and when}, while preserving
+the verifiability that makes the chain useful. This section
+formalizes that choice as the \emph{privacy tier model} and proves
+the two key properties (selective-disclosure soundness, unlinkability
+under pairwise pseudonyms) that make user-controlled disclosure
+implementable.
+
+\subsection{The transparency baseline --- honest acknowledgment}
+
+In the v0.1 and v0.2 designs of \Cref{sec:paraxiom-architecture}, the
+chain stores:
+\begin{itemize}
+\item Each identity's public key, owner \texttt{AccountId}, role,
+  stratum, custody mode (\emph{Identity}).
+\item For S1: a hash of an off-chain KYC bundle (\emph{Civic claim}).
+\item For S2: the parent identity, tenant identifier, role (\emph{Scope}).
+\item For S4: the parent, agent kind, \texttt{instance\_anchor} (\emph{Agency}).
+\item For S5: the multi-signature roots (\emph{Organizational}).
+\item Per-body, per-token-kind reputation values (\emph{Behavioral}).
+\item Per-action attestations with IPFS CIDs (\emph{Provenance}).
+\end{itemize}
+
+A polynomial-time chain observer with no privileged access can
+correlate identifiers, build a per-identity participation graph
+across G-levels (\Cref{sec:governance}), trace reputation
+accumulation, and link attestations to attesters. This is appropriate
+for many use cases (validator operations, public governance
+participation) and inappropriate for many others (employer-screening
+contexts, dissident speech, healthcare credentials, customer
+behavior on a multi-tenant SaaS).
+
+The remedy is not to hide the chain; it is to let the identity-owner
+choose what is revealed in any given action and to provide
+cryptographic constructions that preserve verifiability under that
+choice.
+
+\subsection{The user-controlled disclosure principle}
+
+\begin{definition}[User-controlled disclosure]\label{def:user-controlled-disclosure}
+\emph{User-controlled disclosure} means that for every action $\alpha$
+attributable to identity $\identity$, the holder of $\identity$
+chooses one of $\identity$'s available \emph{privacy postures}
+$\Pi \in \{\Pi_0, \Pi_1, \Pi_2, \Pi_3, \Pi_4\}$ at the moment of
+action. The chain enforces:
+\begin{enumerate}
+\item the action's verifier requirement (what must be proven for the
+  action to succeed),
+\item the holder's chosen posture, provided the posture's primitives
+  can satisfy the requirement.
+\end{enumerate}
+The chain does not enforce a global posture per identity. Different
+actions by the same identity may use different postures.
+\end{definition}
+
+\subsection{The privacy tier model}\label{sec:privacy-tiers}
+
+\begin{definition}[Privacy tier]\label{def:privacy-tier}
+The \emph{privacy tier} of a claim is an element of
+$\mathbb{P} = \{\Pi_0, \Pi_1, \Pi_2, \Pi_3, \Pi_4\}$ defined as
+follows.
+\begin{description}
+\item[$\Pi_0$ \emph{Public}] All claim attributes and the holder's
+  canonical identifier are revealed on chain.
+\item[$\Pi_1$ \emph{Pseudonymous}] The claim is signed by a stealth /
+  derived account unlinked to the holder's canonical $L_4$ identity;
+  attribute values are revealed in cleartext.
+\item[$\Pi_2$ \emph{Selective disclosure}] The claim is presented as
+  a credential (SD-JWT VC or ISO mdoc selective disclosure, or BBS+
+  signature) in which only the attributes the holder elects to
+  reveal are decrypted; the unrevealed attributes remain
+  cryptographically committed.
+\item[$\Pi_3$ \emph{Anonymous (set membership)}] The claim is proven
+  as ``some member of authorized set $S$ signed this'' via ring
+  signature, group signature, or ZK proof of set membership; the
+  individual signer's identity is hidden among $|S|$ candidates.
+\item[$\Pi_4$ \emph{Zero-knowledge}] The claim is presented as a ZK
+  proof of a property $\phi$ over $\identity$'s secret state; neither
+  the secret state nor the holder's identifier is revealed. Examples:
+  $\mathrm{rep}(\identity, B) \geq \theta$ as a ZK range proof;
+  $\identity \in B$ as a ZK proof of membership; ``$\identity$ holds
+  a credential issued by $X$'' as a ZK proof of credential possession.
+\end{description}
+\end{definition}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    every node/.style={font=\footnotesize,align=center},
+    tier/.style={draw=ncrule,thick,rounded corners=2pt,
+                 minimum width=13cm,minimum height=0.85cm,inner sep=4pt},
+    p0/.style={tier,fill=ncwarn!12},
+    p1/.style={tier,fill=ncwarn!7},
+    p2/.style={tier,fill=ncaccent!7},
+    p3/.style={tier,fill=ncaccent!12},
+    p4/.style={tier,fill=ncaccent!22}
+]
+  \node[p0] at (0,4.0) {%
+    \textbf{$\Pi_0$ Public} \;\textit{baseline; all attributes + identifier on chain}\\[-1pt]
+    \scriptsize identity public key \,\textperiodcentered\, AccountId \,\textperiodcentered\, governance memberships \,\textperiodcentered\, reputation values%
+  };
+  \node[p1] at (0,2.85) {%
+    \textbf{$\Pi_1$ Pseudonymous} \;\textit{stealth account unlinked from civic identity}\\[-1pt]
+    \scriptsize derived keypair per context \,\textperiodcentered\, no \texttt{kyc\_bundle\_hash} link \,\textperiodcentered\, attribute values still cleartext%
+  };
+  \node[p2] at (0,1.7) {%
+    \textbf{$\Pi_2$ Selective disclosure} \;\textit{prove only the attributes the holder chooses}\\[-1pt]
+    \scriptsize SD-JWT VC \,\textperiodcentered\, ISO mdoc selective \,\textperiodcentered\, BBS+ signature \,\textperiodcentered\, unrevealed attrs stay committed%
+  };
+  \node[p3] at (0,0.55) {%
+    \textbf{$\Pi_3$ Anonymous} \;\textit{hidden among set members}\\[-1pt]
+    \scriptsize ring signature \,\textperiodcentered\, group signature \,\textperiodcentered\, ZK proof of set membership \,\textperiodcentered\, $|S|$-anonymity%
+  };
+  \node[p4] at (0,-0.6) {%
+    \textbf{$\Pi_4$ Zero-knowledge} \;\textit{prove property $\phi$ without revealing state or identifier}\\[-1pt]
+    \scriptsize ZK range proof on reputation \,\textperiodcentered\, ZK credential possession \,\textperiodcentered\, ZK-SNARK / ZK-STARK%
+  };
+  \draw[->,>=Stealth,thick,ncaccent]
+    (7.0,-1.3) -- node[right=2pt,font=\sffamily\footnotesize,align=left]{privacy\\strength} (7.0,4.7);
+\end{tikzpicture}
+\caption{Privacy tier model. The holder of an identity chooses a
+posture $\Pi \in \{\Pi_0, \ldots, \Pi_4\}$ per action. The chain
+enforces that the holder's chosen primitives suffice to satisfy the
+verifier's requirement; nothing forces a holder to a uniform posture
+across actions.}
+\label{fig:privacy-tiers}
+\end{figure}
+
+\subsection{Primitives by tier}
+
+\paragraph{$\Pi_1$ pseudonymous.}
+A stealth account is a fresh keypair derived from the holder's master
+secret via a context-specific KDF: $\mathrm{sk}_{\mathrm{ctx}} =
+\KDF(\mathrm{sk}_{\mathrm{master}}, \mathrm{ctx})$. The chain sees
+$\mathrm{sk}_{\mathrm{ctx}}$'s public key but not the link to
+$\mathrm{sk}_{\mathrm{master}}$.
+
+\paragraph{$\Pi_2$ selective disclosure.}
+The credentials in \texttt{pallet-credential-vault} can be issued in
+SD-JWT VC or BBS+ form. At presentation time, the holder produces a
+\emph{derived} credential exposing only the attributes the verifier
+needs. The on-chain commitment remains the same; the
+\texttt{attest\_use} extrinsic records that a presentation occurred
+but not which attributes were revealed.
+
+\paragraph{$\Pi_3$ anonymous (set membership).}
+The most useful instance is \emph{anonymous voting}: in a governance
+body $B$ with membership $\mathcal{M}_B$, a voter proves "I am some
+member of $\mathcal{M}_B$" via a ring signature over the set's public
+keys, or via a ZK-SNARK proof of inclusion in $\mathcal{M}_B$ (the
+latter scales better for $|\mathcal{M}_B| > 100$). The vote-counting
+runtime verifies the membership proof and records the vote against
+the body, not against the voter.
+
+\paragraph{$\Pi_4$ zero-knowledge.}
+Used where the property to be proven is parameterized rather than a
+mere set membership. Examples:
+\begin{itemize}
+\item \textbf{Reputation thresholds:}\;\;
+  $\mathrm{rep}(\identity, B) \geq \theta$ as a ZK range proof. The
+  verifier learns only that the threshold is met. Implemented over
+  Bulletproofs or via Stark-friendly hash commitments depending on
+  proof size constraints.
+\item \textbf{Credential possession:}\;\;
+  ``$\identity$ holds a credential issued by $X$'' as a ZK proof of
+  signature-knowledge. BBS+ signatures admit efficient
+  selective-disclosure proofs natively.
+\item \textbf{Age / threshold attributes:}\;\;
+  $\mathrm{DOB}(\identity) \leq t - 18\,\mathrm{years}$ as a ZK range
+  proof. Standard in mobile-driver-license (mDL) deployments via
+  ISO/IEC 18013-5 selective disclosure profile.
+\item \textbf{Anonymous attestation:}\;\;
+  ``some valid agent of class $X$ produced this output'' via Direct
+  Anonymous Attestation (DAA)-style construction. Used for agent
+  swarms (\Cref{sec:agent}) where individual instance identity is
+  not relevant.
+\end{itemize}
+
+Paraxiom's stack already has the primitive building blocks:
+SPHINCS+/Falcon (PQ signature surface),
+\texttt{pedersen-commitment} pallet (for commitments), STARK proofs
+deployed in Drista \cite{paraxiom-mods-manifest}. The remaining work
+is to compose these into ZK-augmented variants of the
+identity-bearing extrinsics in \Cref{sec:paraxiom-architecture}.
+
+\subsection{Selective disclosure soundness}
+
+\begin{theorem}[Selective disclosure soundness]\label{thm:sd-sound}
+Let $\sigma$ be a BBS+ or SD-JWT VC presentation from holder
+$\identity$ disclosing attributes $A_{\mathrm{disc}} \subseteq A_{\mathrm{full}}$
+of a credential issued by issuer $X$ with public key $\mathrm{pk}_X$.
+If a verifier $V$ accepts $\sigma$, then with probability at least
+$1 - \Negl(\lambda)$:
+\begin{enumerate}
+\item Issuer $X$ has actually signed a credential with the same
+  values for $A_{\mathrm{disc}}$;
+\item The values for the undisclosed attributes
+  $A_{\mathrm{full}} \setminus A_{\mathrm{disc}}$ are unknown to $V$
+  beyond the prior distribution over those attributes.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Soundness of (1) follows from the SUF-CMA security of the underlying
+BBS+ (or, in the SD-JWT case, the JWS signature scheme) under the
+chosen pairing assumption (typically SXDH). Zero-knowledge of (2)
+follows from the salted-hash construction (SD-JWT) or the
+randomization of the BBS+ signature, both of which yield
+indistinguishability of unrevealed attribute values from independent
+uniform draws conditional on the full credential being well-formed
+\cite{w3c-vcdm-2,openid-vp-1}.
+\end{proof}
+
+\subsection{Unlinkability under pairwise pseudonyms}
+
+\begin{theorem}[Unlinkability under pairwise pseudonyms]\label{thm:unlinkable}
+Let $\mathrm{sk}_{\mathrm{master}}$ be a holder's master secret, let
+$\mathrm{ctx}_a$ and $\mathrm{ctx}_b$ be two distinct context
+identifiers, and let
+$\mathrm{sk}_{a} = \KDF(\mathrm{sk}_{\mathrm{master}}, \mathrm{ctx}_a)$,
+$\mathrm{sk}_{b} = \KDF(\mathrm{sk}_{\mathrm{master}}, \mathrm{ctx}_b)$
+be the derived context-specific keys. Let $\mathrm{pk}_a, \mathrm{pk}_b$
+be the corresponding public keys. For any polynomial-time adversary
+$\mathcal{A}$ given $\mathrm{pk}_a, \mathrm{pk}_b$ but not
+$\mathrm{sk}_{\mathrm{master}}$:
+\[
+\Pr[\mathcal{A}(\mathrm{pk}_a, \mathrm{pk}_b) = 1 \mid \text{same holder}]
+- \Pr[\mathcal{A}(\mathrm{pk}_a, \mathrm{pk}_b') = 1 \mid \text{different holders}]
+\leq \Negl(\lambda),
+\]
+where $\mathrm{pk}_b'$ is a freshly-drawn public key from an
+independent holder. That is, $\mathcal{A}$ cannot distinguish whether
+two pseudonyms share a master with non-negligible advantage.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Reduces to the pseudo-randomness of the KDF. If
+$\mathcal{A}$ distinguishes the cases with advantage $\epsilon$, we
+construct a distinguisher against the KDF output distribution: query
+the KDF oracle on $\mathrm{ctx}_a$ and $\mathrm{ctx}_b$ for either a
+shared master (real case) or independent draws (random case); the
+public keys are deterministic functions of the secrets; pass them to
+$\mathcal{A}$ and output $\mathcal{A}$'s output. The KDF's
+pseudo-random output distribution under standard assumptions
+\cite{nist-fips-203} bounds $\epsilon \leq \Negl(\lambda)$.
+\end{proof}
+
+\subsection{The mixed-tier leak --- privacy is not a default state}
+
+\begin{remark}[Mixed-tier leak]\label{rem:mixed-tier-leak}
+Privacy guarantees do not compose trivially across tiers used by the
+same holder. Suppose holder $\identity$ takes action $\alpha_1$ at
+posture $\Pi_0$ (publicly revealing identity) and action $\alpha_2$ at
+posture $\Pi_4$ (zero-knowledge). If $\alpha_1$ and $\alpha_2$ share
+side-channel observables (timing, network origin, social-graph
+neighbors, distinctive content), an adversary may correlate them
+despite the cryptographic anonymity of $\alpha_2$. Maintaining the
+benefit of $\Pi_3$ or $\Pi_4$ thus requires:
+\begin{enumerate}
+\item Consistent posture across linkable contexts.
+\item Operational discipline at lower layers (mixnets for network
+  origin, time-uniform action submission, persona separation at the
+  application layer).
+\end{enumerate}
+This is a structural property, not a flaw in the cryptography.
+Drista's PQ mesh and the planned \texttt{qrsync} sync protocol
+address the network-layer side; persona separation is the user-
+facing side.
+\end{remark}
+
+\subsection{Compliance-aware privacy (zk-KYC)}
+
+A frequent regulatory bind: a relying party must establish that a
+counterparty has been KYC-verified by an authorized issuer, but the
+counterparty does not want to reveal their full identity to the
+relying party. The privacy tier model resolves this via a $\Pi_4$
+construction we call \emph{zk-KYC}:
+
+\begin{enumerate}
+\item Issuer $X$ (a KYC provider) issues a credential to holder
+  $\identity$ with attributes including
+  \texttt{kyc\_verified=true}, \texttt{jurisdiction=CA-QC},
+  \texttt{verification\_date=...}.
+\item The credential is committed on chain via
+  \texttt{pallet-credential-vault} per
+  \Cref{sec:paraxiom-architecture}.
+\item At presentation time to relying party $R$, $\identity$ produces
+  a ZK proof of the predicate
+  ``$\exists\,c : c \in \mathrm{issuer}(X) \land
+  c.\mathtt{kyc\_verified} = \mathrm{true} \land
+  c.\mathtt{jurisdiction} = \mathrm{CA\text{-}QC} \land
+  c.\mathtt{holder} = \identity$''
+  without revealing $c$'s other attributes.
+\item Relying party $R$ verifies the proof against $X$'s public key
+  and $\identity$'s on-chain commitment.
+\end{enumerate}
+
+$R$ learns: $\identity$ has been KYC-verified by an authorized
+issuer in Quebec. $R$ does NOT learn: $\identity$'s name, date of
+birth, address, document numbers, or any other attribute of the
+credential. This satisfies the regulatory requirement without the
+privacy cost.
+
+\subsection{ZK-augmented pallet roadmap}
+
+The pallets of \Cref{sec:paraxiom-architecture} each admit a
+ZK-augmented variant; the runtime can accept both classical and
+ZK-augmented extrinsics, letting the user choose per action.
+
+\begin{itemize}
+\item \texttt{identity-registry::register\_identity\_zk}: register an
+  identity using a pseudonymous account; the canonical
+  \texttt{kyc\_bundle\_hash} field is replaced by a Pedersen
+  commitment + ZK proof of inclusion in an issuer's attested set.
+\item \texttt{pallet-credential-vault::present\_zk}: replaces
+  \texttt{attest\_use} with a presentation extrinsic that takes a ZK
+  proof of credential possession + selective disclosure of named
+  attributes.
+\item \texttt{pallet-governance-bodies::vote\_anonymous}: vote on a
+  body's decision by submitting a ring proof or ZK-SNARK proof of
+  membership in $\mathcal{M}_B$; the vote is recorded against $B$
+  without revealing which member.
+\item \texttt{pallet-reputation-tokens::prove\_threshold}: produce a
+  ZK range proof that
+  $\mathrm{rep}(\identity, B) \geq \theta$ for verifier consumption;
+  the chain confirms the proof but does not reveal the exact value.
+\item \texttt{axiom-attestation::attest\_anonymous}: emit an
+  attestation under a $\Pi_3$ ring signature over an issuer set,
+  appropriate for agent-swarm attestations
+  (\Cref{sec:agent}~\S6.3).
+\end{itemize}
+
+These ZK-augmented variants ship in v0.3 of the architecture
+(post-v0.2 self-sovereign custody). The v0.1 / v0.2 chain accepts
+only $\Pi_0$ and $\Pi_1$ extrinsics; the v0.3 chain extends the
+extrinsic set without breaking v0.1 / v0.2 records. Forward
+compatibility is preserved.
+
+% =============================================================================
 \section{Future scenarios}\label{sec:future}
 % =============================================================================
 
@@ -2157,6 +2509,94 @@ pub fn attest_substrate(
     publisher_falcon_sig: BoundedVec<u8, ConstU32<2048>>,
     ipfs_cid_card: BoundedVec<u8, ConstU32<128>>,
 ) -> DispatchResult;
+\end{lstlisting}
+
+\section{ZK-augmented pallet extrinsics (v0.3)}\label{app:zk-pallets}
+
+The v0.3 chain extends the v0.2 pallet set with privacy-preserving
+extrinsics. Both classical and ZK-augmented variants coexist; the
+user chooses per action per \Cref{def:user-controlled-disclosure}.
+
+\subsection{ZK-augmented identity registration}
+
+\begin{lstlisting}[language=rust]
+pub struct PedersenCommitment {
+    pub commitment: [u8; 32],
+    pub blinding_proof_hint: [u8; 32],
+}
+
+pub struct ZkKycProof {
+    /// Proves: commitment opens to (kyc_verified=true, jurisdiction, holder=self)
+    /// for some credential issued by an authorized KYC issuer.
+    pub proof_bytes: BoundedVec<u8, ConstU32<8192>>,
+    pub authorized_issuer_set_root: H256,
+}
+
+pub fn register_identity_zk(
+    origin: OriginFor<T>,
+    public_key: BoundedVec<u8, ConstU32<2048>>,
+    kyc_commitment: PedersenCommitment,
+    zk_kyc_proof: ZkKycProof,
+    custody: CustodyMode,
+) -> DispatchResult;
+\end{lstlisting}
+
+\subsection{ZK credential presentation}
+
+\begin{lstlisting}[language=rust]
+pub struct ZkPresentationProof {
+    /// BBS+ / SD-JWT-style selective disclosure proof.
+    pub proof_bytes: BoundedVec<u8, ConstU32<8192>>,
+    /// The disclosed attributes (revealed in cleartext per holder's choice).
+    pub disclosed_attrs: BoundedVec<(BoundedVec<u8, ConstU32<64>>, BoundedVec<u8, ConstU32<256>>), ConstU32<32>>,
+}
+
+pub fn present_zk(
+    origin: OriginFor<T>,
+    commitment_id: u64,
+    relying_party_context: BoundedVec<u8, ConstU32<128>>,
+    proof: ZkPresentationProof,
+) -> DispatchResult;
+\end{lstlisting}
+
+\subsection{Anonymous governance vote}
+
+\begin{lstlisting}[language=rust]
+pub struct AnonymousMembershipProof {
+    /// Proves: signer in {membership set of body_id at proof_block}.
+    pub proof_bytes: BoundedVec<u8, ConstU32<16384>>,
+    pub proof_block: u64,
+    pub nullifier: [u8; 32],  // prevents double-voting
+}
+
+pub fn vote_anonymous(
+    origin: OriginFor<T>,
+    body_id: u64,
+    decision_id: u64,
+    choice: VoteChoice,
+    membership_proof: AnonymousMembershipProof,
+) -> DispatchResult;
+// Runtime stores nullifier to prevent the same member from voting twice
+// without revealing which member.
+\end{lstlisting}
+
+\subsection{ZK reputation threshold proof}
+
+\begin{lstlisting}[language=rust]
+pub struct ReputationRangeProof {
+    /// Bulletproof or STARK proof that rep(holder, body) >= threshold.
+    pub proof_bytes: BoundedVec<u8, ConstU32<4096>>,
+    pub commitment_to_holder: PedersenCommitment,
+}
+
+pub fn prove_threshold(
+    origin: OriginFor<T>,
+    body_id: u64,
+    token_kind: BoundedVec<u8, ConstU32<64>>,
+    threshold: u32,
+    proof: ReputationRangeProof,
+) -> Result<bool, DispatchError>;
+// Verifier-side helper; does not write to state.
 \end{lstlisting}
 
 \section{Sources}\label{app:sources}
