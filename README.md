@@ -68,7 +68,7 @@ Requires xelatex with `fontspec`, `unicode-math`, `amsthm`,
   (Zenodo DOI for the treatise, crates.io / npm / PyPI / GHCR for
   code, sequencing + namespace claims)
 
-### In `Neo-Carbone/lovable-bridge` (first consumer)
+### In `Neo-Carbone/neogen-pipeline` (first consumer)
 
 - `pipeline/ui/docs/IDENTITY-ARCHITECTURE.md` — markdown narrative version
 - `pipeline/ui/docs/IDENTITY-PALLETS-DESIGN.md` — pallet design spec

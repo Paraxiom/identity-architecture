@@ -48,7 +48,7 @@ The architecture is foundational infrastructure. Identity is needed by:
 - **Any third party** who wants to interop with Paraxiom-anchored
   identities (chain or IPFS payloads)
 
-If the implementation only lives in `Neo-Carbone/lovable-bridge`, every
+If the implementation only lives in `Neo-Carbone/neogen-pipeline`, every
 downstream consumer must read NC's code and copy it. That is the
 opposite of foundational infrastructure. Each consumer should:
 
