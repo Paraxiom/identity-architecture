@@ -587,6 +587,43 @@ restarts but routinely changeable by administrators. Tier~$3$
 identifiers are \emph{runtime-ephemeral}: regenerated each session.
 \end{definition}
 
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    every node/.style={font=\footnotesize,align=center},
+    tier/.style={draw=ncrule,thick,rounded corners=2pt,
+                 minimum width=12cm,minimum height=1.1cm,inner sep=5pt},
+    tier0/.style={tier,fill=ncaccent!15},
+    tier1/.style={tier,fill=ncaccent!10},
+    tier2/.style={tier,fill=ncaccent!5},
+    tier3/.style={tier,fill=nclight},
+]
+  \node[tier0] (t0) at (0,4.5) {
+    \textbf{Tier~0 \;|\; Manufacturer-fused} \;\textit{lifetime: hardware life}\\
+    \scriptsize SMBIOS UUID \; $\bullet$ \; TPM~2.0 EK \; $\bullet$ \; Apple Secure Enclave UID \; $\bullet$ \; Titan-M2 \; $\bullet$ \; Pluton root \; $\bullet$ \; storage serials
+  };
+  \node[tier1] (t1) at (0,3) {
+    \textbf{Tier~1 \;|\; Installation-rooted} \;\textit{lifetime: install lifetime}\\
+    \scriptsize \texttt{/etc/machine-id} \; $\bullet$ \; SSH host keys \; $\bullet$ \; TPM AIKs \; $\bullet$ \; cloud-init instance-id \; $\bullet$ \; \texttt{HKLM\textbackslash...\textbackslash MachineGuid}
+  };
+  \node[tier2] (t2) at (0,1.5) {
+    \textbf{Tier~2 \;|\; Operationally configured} \;\textit{lifetime: admin rotation}\\
+    \scriptsize hostname \; $\bullet$ \; krb5.keytab \; $\bullet$ \; TLS certs \; $\bullet$ \; WireGuard keys \; $\bullet$ \; IAM role bindings \; $\bullet$ \; Vault tokens
+  };
+  \node[tier3] (t3) at (0,0) {
+    \textbf{Tier~3 \;|\; Runtime-ephemeral} \;\textit{lifetime: session}\\
+    \scriptsize PID \; $\bullet$ \; container ID \; $\bullet$ \; network sockets \; $\bullet$ \; namespaces \; $\bullet$ \; SELinux/AppArmor labels
+  };
+  \draw[->,>=Stealth,thick,ncaccent] (7.5,-0.7) -- node[right=2pt,font=\sffamily\footnotesize]{permanence \;$P(T)$} (7.5,5.2);
+\end{tikzpicture}
+\caption{Permanence tier hierarchy. \Cref{thm:tier-monotonicity}
+states $P(0) \geq P(1) \geq P(2) \geq P(3)$. The post-quantum
+identity stack should select the lowest-tier identifier available
+when registering an agent's \texttt{instance\_anchor}
+(\Cref{cor:substrate-selection}).}
+\label{fig:tier-hierarchy}
+\end{figure}
+
 \subsection{Tier~0 (manufacturer-fused)}
 
 \begin{itemize}
@@ -762,6 +799,71 @@ five strata:
   multi-signature of S1 founders or jurisdictional authority.
 \end{description}
 \end{definition}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    every node/.style={font=\footnotesize,align=center},
+    s1/.style={draw=ncaccent,fill=ncaccent!10,thick,rounded corners=4pt,
+               minimum width=2.4cm,minimum height=0.8cm},
+    s2/.style={draw=ncrule,fill=white,rounded corners=2pt,
+               minimum width=2.2cm,minimum height=0.7cm},
+    s4/.style={draw=ncgray,fill=nclight,rounded corners=2pt,dashed,
+               minimum width=2.2cm,minimum height=0.7cm},
+    s5/.style={draw=ncwarn,fill=ncwarn!8,thick,rounded corners=6pt,
+               minimum width=2.4cm,minimum height=0.8cm},
+    arr/.style={->,>=Stealth,ncgray,thick},
+    multisign/.style={->,>=Stealth,ncwarn,dashed,thick},
+]
+  % S1 roots
+  \node[s1] (alice) at (-3,4) {Alice\\\footnotesize S1 Person};
+  \node[s1] (bob)   at (3,4)  {Bob\\\footnotesize S1 Person};
+
+  % S5 cross-tenant org (rooted in both)
+  \node[s5] (org) at (0,5.5) {Paraxiom Inc.\\\footnotesize S5 Org};
+
+  % S2 scoped per Alice
+  \node[s2] (a-nc) at (-5,2)   {Alice@NC\\\footnotesize S2 Scoped};
+  \node[s2] (a-px) at (-1.5,2) {Alice@Paraxiom\\\footnotesize S2 Scoped};
+
+  % S2 scoped per Bob
+  \node[s2] (b-nc) at (1.5,2) {Bob@NC\\\footnotesize S2 Scoped};
+  \node[s2] (b-px) at (5,2)   {Bob@Paraxiom\\\footnotesize S2 Scoped};
+
+  % S4 agents
+  \node[s4] (axl) at (-5,0.2)   {Axiom-LLM-77\\\scriptsize S4 Agent};
+  \node[s4] (ci1) at (-1.5,0.2) {CI-bot-A1\\\scriptsize S4 Agent};
+  \node[s4] (rev) at (1.5,0.2)  {Reviewer-B2\\\scriptsize S4 Agent};
+  \node[s4] (qhv) at (5,0.2)    {QH-validator-N3\\\scriptsize S4 Agent};
+
+  % S1 -> S2
+  \draw[arr] (alice) -- (a-nc);
+  \draw[arr] (alice) -- (a-px);
+  \draw[arr] (bob)   -- (b-nc);
+  \draw[arr] (bob)   -- (b-px);
+
+  % S2 -> S4
+  \draw[arr] (a-nc) -- (axl);
+  \draw[arr] (a-px) -- (ci1);
+  \draw[arr] (b-nc) -- (rev);
+  \draw[arr] (b-px) -- (qhv);
+
+  % S1 -> S5 (co-founder multisig)
+  \draw[multisign] (alice) -- (org);
+  \draw[multisign] (bob)   -- (org);
+
+  % Time arrow on side
+  \draw[->,>=Stealth,thick,ncgray]
+        (-6.5,-0.5) -- node[left,font=\sffamily\scriptsize,rotate=90,yshift=8pt]{block height $\nearrow$} (-6.5,5.5);
+\end{tikzpicture}
+\caption{The stratum lattice. Every S2 / S4 identity registers with a
+non-null \texttt{parent\_identity} field, terminating in finite
+$\prec$-steps at an S1 root (\Cref{thm:stratum-wellfounded}). S5
+organizational identities are rooted in a multi-signature of S1
+founders (dashed arrows). Block heights are strictly monotone
+parent$\rightarrow$child, precluding cycles.}
+\label{fig:stratum-lattice}
+\end{figure}
 
 \subsection{Stratum well-foundedness}
 
@@ -939,6 +1041,52 @@ inherit from $G_5$; $G_7$ may operate cross-jurisdictionally.
 
 \subsection{Identity participates in many levels at once}
 
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    every node/.style={font=\footnotesize,align=center},
+    identity/.style={draw=ncaccent,fill=ncaccent!12,very thick,
+                     circle,minimum size=2.3cm,inner sep=0pt,
+                     font=\sffamily\small\bfseries},
+    body/.style={draw=ncrule,fill=nclight,rounded corners=3pt,
+                 minimum width=2.6cm,minimum height=0.85cm,
+                 inner sep=4pt,font=\footnotesize},
+    rep/.style={font=\scriptsize\itshape,text=ncgray},
+    arr/.style={->,>=Stealth,ncgray}
+]
+  \node[identity] (id) at (0,0) {S1 Person\\$\identity$};
+
+  \node[body] (g0) at (90:4.2)    {$G_0$ \,Self\\\scriptsize vault \,\textperiodcentered\, keys};
+  \node[body] (g1) at (52:4.2)    {$G_1$ \,Domestic\\\scriptsize household};
+  \node[body] (g2) at (14:4.7)    {$G_2$ \,Committee\\\scriptsize NC tech committee};
+  \node[body] (g3) at (-24:4.7)   {$G_3$ \,Organization\\\scriptsize Paraxiom Inc.};
+  \node[body] (g4) at (-62:4.7)   {$G_4$ \,Federation\\\scriptsize industry consortia};
+  \node[body] (g5) at (-114:4.7)  {$G_5$ \,Civic\\\scriptsize Quebec / Canada};
+  \node[body] (g6) at (-156:4.5)  {$G_6$ \,Supranational\\\scriptsize UN, treaty bodies};
+  \node[body] (g7) at (128:4.5)   {$G_7$ \,Protocol\\\scriptsize on-chain DAOs};
+
+  \foreach \b/\label in {g0/{},g1/{},g2/{},g3/{},g4/{},g5/{},g6/{},g7/{}}
+    \draw[arr] (id) -- (\b);
+
+  \node[rep] at (90:2.4)    {$\mathrm{rep}_{G_0}$};
+  \node[rep] at (52:2.4)    {$\mathrm{rep}_{G_1}$};
+  \node[rep] at (14:2.6)    {$\mathrm{rep}_{G_2}$};
+  \node[rep] at (-24:2.6)   {$\mathrm{rep}_{G_3}$};
+  \node[rep] at (-62:2.6)   {$\mathrm{rep}_{G_4}$};
+  \node[rep] at (-114:2.6)  {$\mathrm{rep}_{G_5}$};
+  \node[rep] at (-156:2.5)  {$\mathrm{rep}_{G_6}$};
+  \node[rep] at (128:2.5)   {$\mathrm{rep}_{G_7}$};
+\end{tikzpicture}
+\caption{Multi-level participation. A single S1 identity locus
+participates in up to eight governance bodies at distinct $G$-levels
+simultaneously. Each participation is a separate membership record
+with its own scoped reputation ledger
+$\mathrm{rep}: \mathbb{I} \times \mathbb{B} \to \mathbb{N}$.
+\Cref{thm:rep-nontransitive} states that reputation does not flow
+between these bodies without explicit cross-body endorsement.}
+\label{fig:multi-level}
+\end{figure}
+
 A single identity locus typically participates in several bodies
 across multiple $G$-levels simultaneously. For example, a person
 $\identity$ may be the sole member of his $G_0$ self-sovereign body;
@@ -1005,6 +1153,44 @@ Sovereign bodies do not have a parent, but their $\chi$ is bounded by
 the founding-event attestation, verifiable by any verifier. The
 bound holds in both cases.
 \end{proof}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    every node/.style={font=\footnotesize,align=center},
+    arr/.style={->,>=Stealth,ncgray,thick}
+]
+  \draw[draw=ncaccent,fill=ncaccent!8,thick] (0,0) ellipse (5.2 and 2.9);
+  \node[font=\sffamily\bfseries] at (-2.8,2.3) {$G_5$ Quebec — sovereign scope};
+
+  \draw[draw=ncaccent,fill=ncaccent!15,thick] (0.5,-0.2) ellipse (3.7 and 2.0);
+  \node[font=\sffamily\bfseries] at (-1.0,1.4) {$G_3$ Paraxiom Inc. — corporate};
+
+  \draw[draw=ncwarn,fill=white,thick] (1.2,-0.4) ellipse (2.3 and 1.2);
+  \node[font=\sffamily\bfseries] at (0.6,0.4) {$G_2$ Tech committee};
+
+  \draw[draw=ncgray,thick,dashed] (2.0,-0.5) ellipse (1.0 and 0.55);
+  \node[font=\sffamily\scriptsize] at (2.0,-0.5) {$G_2$ subcttee};
+
+  \node[font=\scriptsize,anchor=west] at (-5.4,-3.7)
+    {\textit{$\chi$ items:}};
+  \node[font=\scriptsize,anchor=west,align=left,text width=11cm] at (-3.7,-3.7) {
+    \footnotesize Quebec: \textit{taxation, civil law, education, healthcare, judicial review, $\ldots$}
+    \quad $\supseteq$ \quad
+    Paraxiom: \textit{product direction, hiring, treasury, IP licensing}
+    \quad $\supseteq$ \quad
+    Tech ctte: \textit{architectural decisions, PR approvals}
+  };
+\end{tikzpicture}
+\caption{Chartered scope bounding (\Cref{thm:scope-bounding}). A child
+body's chartered scope $\chi$ is a strict subset of its parent's. A
+G$_2$ committee within a G$_3$ corporation may only decide what the
+corporation chartered to it; the corporation, in turn, may only act
+within scopes available to it under its G$_5$ jurisdiction. The
+chain rejects \texttt{register\_body} extrinsics that violate the
+subset relation.}
+\label{fig:scope-bounding}
+\end{figure}
 
 \Cref{thm:scope-bounding} is the formal restatement of the principle
 that a child cannot claim authority the parent does not have. A
@@ -1399,6 +1585,54 @@ the canonical bulk-payload store, content-addressed by CID. The
 Postgres+Redis mirror is rebuildable from chain plus IPFS without
 information loss (modulo unrecoverable plaintexts, which are protected
 by deletion of the master key per \Cref{thm:crypto-shredding}).
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    every node/.style={font=\footnotesize,align=center},
+    layer/.style={draw=ncrule,thick,rounded corners=3pt,
+                  minimum width=13cm,minimum height=1.6cm,
+                  inner sep=6pt},
+    chain/.style={layer,fill=ncaccent!12},
+    ipfs/.style={layer,fill=ncaccent!6},
+    mirror/.style={layer,fill=nclight},
+    arr/.style={->,>=Stealth,thick,ncaccent},
+    arr2/.style={->,>=Stealth,thick,ncwarn},
+]
+  \node[chain] (chain) at (0,5) {
+    \textsf{\bfseries QuantumHarmony chain} \;\textit{(authoritative, append-only, PQ-signed)}\\[1pt]
+    \scriptsize identity-registry \; $\bullet$ \; pallet-governance-bodies \; $\bullet$ \; pallet-credential-vault \; $\bullet$ \; axiom-attestation \; $\bullet$ \; pallet-reputation-tokens\\
+    \scriptsize storage: identity records · hashes · CIDs · commitments · signatures · attestations · governance memberships
+  };
+  \node[ipfs] (ipfs) at (0,2.5) {
+    \textsf{\bfseries IPFS} \;\textit{(immutable, content-addressed by CID)}\\[1pt]
+    \scriptsize encrypted vault ciphertexts (AES-256-GCM) \; $\bullet$ \; KYC bundles (Falcon-signed) \; $\bullet$ \; attestation full payloads\\
+    \scriptsize model cards \;$\bullet$\; training-run logs \;$\bullet$\; governance body charters
+  };
+  \node[mirror] (db) at (0,0) {
+    \textsf{\bfseries Gov-app: Postgres + Redis} \;\textit{(fast, rebuildable mirror)}\\[1pt]
+    \scriptsize denormalized indexes \;$\bullet$\; query caches \;$\bullet$\; UI state \;$\bullet$\; per-tenant views\\
+    \scriptsize \emph{contains no source-of-truth state; rebuildable from chain + IPFS}
+  };
+  % chain <-> db
+  \draw[arr] ($(db.north)+(-3,0)$) -- node[left=2pt,font=\scriptsize]{extrinsic submission} ($(chain.south)+(-3,0)$);
+  \draw[arr] ($(chain.south)+(3,0)$) -- node[right=2pt,font=\scriptsize]{event subscription \& mirror} ($(db.north)+(3,0)$);
+  % chain <-> ipfs
+  \draw[arr2] ($(ipfs.north)+(-3,0)$) -- node[left=2pt,font=\scriptsize]{anchor CID \& hash} ($(chain.south)+(-1.0,0)$) [out=270,in=90];
+  \draw[arr2] ($(chain.south)+(1.0,0)$) -- node[right=2pt,font=\scriptsize]{verify CID} ($(ipfs.north)+(3,0)$) [out=270,in=90];
+  % db <-> ipfs
+  \draw[arr] ($(db.north)+(-0.5,0)$) -- node[left=2pt,font=\scriptsize]{pin payload} ($(ipfs.south)+(-0.5,0)$);
+  \draw[arr] ($(ipfs.south)+(0.5,0)$) -- node[right=2pt,font=\scriptsize]{fetch by CID} ($(db.north)+(0.5,0)$);
+\end{tikzpicture}
+\caption{Three-tier identity architecture. The chain is the
+authoritative source of truth for cryptographic claims; IPFS holds
+bulk encrypted payloads addressed by content; Postgres+Redis is a
+fast, rebuildable query mirror. CCPA crypto-shredding
+(\Cref{thm:crypto-shredding}) is realized at the
+gov-app layer: deletion of the user's master key renders all
+IPFS-pinned ciphertexts permanently inaccessible without unpinning.}
+\label{fig:three-tier}
+\end{figure}
 
 \subsection{Identity strata}
 
