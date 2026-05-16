@@ -62,9 +62,20 @@ Requires xelatex with `fontspec`, `unicode-math`, `amsthm`,
 
 ## Companion documents
 
-- `../pipeline/ui/docs/IDENTITY-ARCHITECTURE.md` — markdown narrative version
-- `../pipeline/ui/docs/IDENTITY-PALLETS-DESIGN.md` — pallet design spec
-- `../pipeline/ui/docs/GOVERNANCE-ROADMAP.md` — §10 ID anchor product roadmap
+### In this repo
+
+- `PUBLISHING-STRATEGY.md` — how each artifact will be published
+  (Zenodo DOI for the treatise, crates.io / npm / PyPI / GHCR for
+  code, sequencing + namespace claims)
+
+### In `Neo-Carbone/lovable-bridge` (first consumer)
+
+- `pipeline/ui/docs/IDENTITY-ARCHITECTURE.md` — markdown narrative version
+- `pipeline/ui/docs/IDENTITY-PALLETS-DESIGN.md` — pallet design spec
+- `pipeline/ui/docs/IDENTITY-SUBSTRATES.md` — multi-chain + ephemeral identities
+- `pipeline/ui/docs/FIELDNOW-PERSONAS.md` — NC-specific persona enumeration
+- `pipeline/ui/docs/GOV-APP-IDENTITY-AND-ERASURE.md` — first consumer impl spec
+- `pipeline/ui/docs/GOVERNANCE-ROADMAP.md` — §10 ID anchor product roadmap
 
 ## Citation
 
