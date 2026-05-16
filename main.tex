@@ -898,6 +898,220 @@ training-run log; the on-chain record holds only hashes and the
 publisher signature.
 
 % =============================================================================
+\section{Governance levels and identity participation}\label{sec:governance}
+% =============================================================================
+
+A treatment of identity that stops at \emph{individual, organization,
+swarm, protocol} misses the most consequential structural fact: a
+single identity participates in many distinct governance levels
+simultaneously, each with its own legitimacy source, scope, and
+reputation ledger. The identity is one; the governance memberships
+are many. This section formalizes the multi-level participation
+structure and proves the key non-bleeding property that makes the
+architecture work.
+
+\subsection{The governance-level taxonomy}
+
+\begin{definition}[Governance level taxonomy]\label{def:g-levels}
+The governance-level set $\mathbb{G}^{\mathrm{lvl}} = \{G_0, G_1,
+\ldots, G_7\}$ enumerates eight governance scopes:
+\begin{description}
+\item[$G_0$ \emph{Self}] Sovereign control over one's own state, body,
+  key material, vault. Constituency size: 1.
+\item[$G_1$ \emph{Domestic}] Household / family / intimate group.
+  Shared finances, dependents, shared assets.
+\item[$G_2$ \emph{Project / committee}] Working team, ad-hoc
+  body, time-bound initiative.
+\item[$G_3$ \emph{Organizational}] Companies, NGOs, formal chartered
+  entities.
+\item[$G_4$ \emph{Federation}] Voluntary inter-organizational
+  cooperation.
+\item[$G_5$ \emph{Civic}] Municipal, provincial/state, national
+  governance.
+\item[$G_6$ \emph{Supranational}] Treaty bodies, alliances spanning
+  sovereigns.
+\item[$G_7$ \emph{Protocol}] Decentralized on-chain governance,
+  DAOs, protocol councils.
+\end{description}
+The levels are not strictly hierarchical: $G_3$ does not necessarily
+inherit from $G_5$; $G_7$ may operate cross-jurisdictionally.
+\end{definition}
+
+\subsection{Identity participates in many levels at once}
+
+A single identity locus typically participates in several bodies
+across multiple $G$-levels simultaneously. For example, a person
+$\identity$ may be the sole member of his $G_0$ self-sovereign body;
+participate in a $G_1$ household; serve on a $G_2$ project committee;
+hold an officer role in a $G_3$ corporation; be a member of a $G_4$
+industry federation; be a citizen of $G_5$ civic bodies at
+multiple geographic granularities; be transitively bound by his $G_5$
+jurisdiction's $G_6$ treaty obligations; and hold $G_7$
+protocol identities across multiple DAOs. The accountability chain
+does not fork into many identities; it forks into one identity with
+many scoped participations.
+
+\subsection{Governance bodies as first-class objects}
+
+\begin{definition}[Governance body]\label{def:governance-body}
+A \emph{governance body} is a tuple
+\[
+B = (b, \ell, \pi_B, \chi, \sigma_\pi, \mathcal{M}_B)
+\]
+where:
+\begin{itemize}
+\item $b \in \mathbb{N}$ is the body identifier
+\item $\ell \in \mathbb{G}^{\mathrm{lvl}}$ is the governance level
+\item $\pi_B$ is the parent body, or $\bot$ if sovereign
+\item $\chi \subseteq \mathbb{S}^{\mathrm{scope}}$ is the
+  \emph{chartered scope} --- the decision domains the body is
+  authorized to act upon, drawn from a primitive scope-set
+  $\mathbb{S}^{\mathrm{scope}}$
+\item $\sigma_\pi$ is the parent body's PQ signature over
+  $(b, \ell, \chi)$, or a founding-event attestation for sovereign
+  bodies
+\item $\mathcal{M}_B \subseteq \mathbb{I}$ is the membership
+\end{itemize}
+We write $\mathbb{B}$ for the set of all governance bodies.
+\end{definition}
+
+\begin{definition}[Participation relation]\label{def:participation}
+The \emph{participation relation} is
+$P \subseteq \mathbb{I} \times \mathbb{B}$ where
+$(\identity, B) \in P$ iff $\identity \in \mathcal{M}_B$ at the
+inquiry time. We write $P(\identity) := \{B : (\identity, B) \in P\}$
+for the set of bodies in which $\identity$ participates.
+\end{definition}
+
+\subsection{Chartered scope bounding}
+
+\begin{theorem}[Chartered scope bounding]\label{thm:scope-bounding}
+For any governance body $B$ with parent $\pi_B$:
+\[
+\chi_B \subseteq \chi_{\pi_B}.
+\]
+That is, a child body's chartered scope is a subset of its parent's
+chartered scope. Sovereign bodies bound their own scope by
+founding-event attestation.
+\end{theorem}
+
+\begin{proof}
+The on-chain registration extrinsic for a body requires the parent's
+PQ signature $\sigma_\pi$ over the proposed $\chi$. The runtime
+validator accepts the registration only after confirming
+$\chi \subseteq \chi_{\pi_B}$ by direct set comparison. If
+$\chi \not\subseteq \chi_{\pi_B}$, the extrinsic is rejected.
+Sovereign bodies do not have a parent, but their $\chi$ is bounded by
+the founding-event attestation, verifiable by any verifier. The
+bound holds in both cases.
+\end{proof}
+
+\Cref{thm:scope-bounding} is the formal restatement of the principle
+that a child cannot claim authority the parent does not have. A
+$G_2$ committee within a $G_3$ organization may make decisions only
+within the sub-scope the organization delegated; a $G_3$ corporation
+operating under $G_5$ jurisdiction may not exercise powers reserved
+to the $G_5$ sovereign.
+
+\subsection{Multi-level participation theorem}
+
+\begin{theorem}[Multi-level participation independence]\label{thm:multi-level}
+Let $\identity \in \mathbb{I}$ with
+$P(\identity) = \{B_1, \ldots, B_n\}$. If the chartered scopes are
+pairwise disjoint, $\chi_{B_i} \cap \chi_{B_j} = \emptyset$ for
+all $i \neq j$, then $\identity$'s authorization to act in any
+$B_i$ is independent of its authorizations in $B_{j \neq i}$. The
+action-authorization predicate
+$\mathrm{auth}(\identity, B_i, \alpha)$ depends only on
+$\identity$'s membership and reputation in $B_i$.
+\end{theorem}
+
+\begin{proof}
+The action-authorization predicate is
+\[
+\mathrm{auth}(\identity, B, \alpha) =
+  \mathrm{member}(\identity, B) \;\land\;
+  (\alpha \in \chi_B) \;\land\;
+  (\mathrm{rep}(\identity, B) \geq \theta_{B,\alpha}),
+\]
+where $\theta_{B,\alpha}$ is the per-body, per-action minimum
+reputation threshold. The membership predicate queries $P$ for the
+specific $(\identity, B)$ pair; the scope check uses $B$'s chartered
+scope only; the reputation check queries the per-body reputation
+table. None of these depend on $\identity$'s membership or reputation
+in any other body. Hence the authorization is independent across
+bodies whose scopes are disjoint.
+\end{proof}
+
+\Cref{thm:multi-level} formalizes the design claim that a person's
+reputation in a $G_2$ committee does not automatically grant authority
+in a $G_7$ protocol DAO. The authorization machinery is local to
+each body's scope.
+
+\subsection{Reputation non-transitivity}
+
+\begin{theorem}[Reputation non-transitivity]\label{thm:rep-nontransitive}
+For governance bodies $B_a \neq B_b$ and no explicit cross-body
+endorsement, the reputation function
+$\mathrm{rep}: \mathbb{I} \times \mathbb{B} \to \mathbb{N}$ satisfies
+\[
+\mathrm{rep}(\identity, B_a) \;\not\Rightarrow\;
+\mathrm{rep}(\identity, B_b).
+\]
+Cross-body recognition requires a third body $B_c$ with chartered
+scope including both $B_a$ and $B_b$ to issue an
+\texttt{axiom-attestation} of variant
+\texttt{CrossBodyEndorsement} linking the two.
+\end{theorem}
+
+\begin{proof}
+The reputation function is implemented as a per-body storage map
+$(\text{holder\_id}, \text{body\_id}, \text{token\_kind}) \to
+\text{TokenRecord}$. Queries against $\mathrm{rep}(\identity, B_b)$
+access only $B_b$-keyed entries; no key in this map references $B_a$.
+Hence $\mathrm{rep}(\identity, B_a)$ contributes nothing to
+$\mathrm{rep}(\identity, B_b)$. The cross-body endorsement extrinsic
+explicitly creates a $B_b$-keyed entry derived from a $B_a$-keyed
+entry, gated by an authorizing signature from a body whose chartered
+scope contains both. Absent such an endorsement, the two reputations
+are independent.
+\end{proof}
+
+\begin{remark}
+\Cref{thm:rep-nontransitive} structurally defeats a class of Sybil
+attacks: an adversary cannot accumulate cheap reputation in an
+under-defended body and then exercise it in a high-stakes body. Each
+governance body bears responsibility for the integrity of its own
+reputation distribution.
+\end{remark}
+
+\subsection{Augmented democracy and multi-level structure}
+
+The augmented-democracy architecture of \nc\ places governance bodies
+at multiple $G$-levels in interaction:
+\begin{itemize}
+\item A $G_2$ committee (the NC tech committee) makes product
+  decisions that bind a $G_3$ organization (NeoCarbone Inc.).
+\item The $G_3$ organization, via its $G_2$ committee, ships
+  decisions as software changes attested on-chain by a $G_7$ protocol
+  body (\qh) through \texttt{axiom-attestation}.
+\item Customer organizations are themselves $G_3$ bodies operating on
+  the NC platform; their internal $G_2$ committees use the same
+  governance-body machinery, scoped to the customer's tenant context
+  (an $S_2$ stratum identity).
+\item All of the above are subject to $G_5$ jurisdictional law
+  (Quebec / Canada) via the $G_3$ corporation's
+  \texttt{jurisdictional\_anchor}, which links the body to its
+  registering authority's $L_4$ claim.
+\end{itemize}
+
+The chain holds all of these as first-class objects via
+\texttt{pallet-governance-bodies} (Appendix B). The verification
+ladder (question generation, PR review, deliberation) operates
+within each body's scope, returning a verdict only valid for that
+body's decision space.
+
+% =============================================================================
 \section{Cryptographic substrate}\label{sec:crypto-substrate}
 % =============================================================================
 
@@ -1604,6 +1818,52 @@ pub fn verify_chain(
     action_kind: ActionKind,
     block: BlockNumberFor<T>,
 ) -> Result<ChainVerdict, DispatchError>;
+\end{lstlisting}
+
+\subsection{\texttt{pallet-governance-bodies}}
+
+\begin{lstlisting}[language=rust]
+pub enum GovernanceLevel {
+    G0Self, G1Domestic, G2Project, G3Organization,
+    G4Federation, G5Civic, G6Supranational, G7Protocol,
+}
+
+pub enum ScopeClaim {
+    DecisionDomain(BoundedVec<u8, ConstU32<64>>),
+    ResourceControl(BoundedVec<u8, ConstU32<64>>),
+    AttestationAuthority,
+    MembershipAdmin,
+    Custom(BoundedVec<u8, ConstU32<128>>),
+}
+
+pub struct GovernanceBody<AccountId, BlockNumber> {
+    pub id: u64,
+    pub level: GovernanceLevel,
+    pub name: BoundedVec<u8, ConstU32<128>>,
+    pub parent_body: Option<u64>,
+    pub charter_hash: [u8; 32],
+    pub charter_ipfs_cid: BoundedVec<u8, ConstU32<128>>,
+    pub chartered_scope: BoundedVec<ScopeClaim, ConstU32<16>>,
+    pub parent_signature: BoundedVec<u8, ConstU32<2048>>,
+    pub status: BodyStatus,
+    pub created_at_block: BlockNumber,
+    pub jurisdictional_anchor: Option<JurisdictionRef>,
+}
+
+pub fn register_body(
+    origin: OriginFor<T>,
+    level: GovernanceLevel,
+    name: BoundedVec<u8, ConstU32<128>>,
+    parent_body: Option<u64>,
+    chartered_scope: BoundedVec<ScopeClaim, ConstU32<16>>,
+    charter_ipfs_cid: BoundedVec<u8, ConstU32<128>>,
+    parent_signature: BoundedVec<u8, ConstU32<2048>>,
+) -> DispatchResult;
+// Runtime enforces Theorem 8.3: chartered_scope SUBSET parent_chartered_scope.
+
+pub fn add_member(origin: OriginFor<T>, body_id: u64, member: u64) -> DispatchResult;
+pub fn remove_member(origin: OriginFor<T>, body_id: u64, member: u64) -> DispatchResult;
+pub fn terminate_body(origin: OriginFor<T>, body_id: u64, successor: Option<u64>) -> DispatchResult;
 \end{lstlisting}
 
 \subsection{\texttt{pallet-credential-vault}}
