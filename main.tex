@@ -149,9 +149,20 @@
 \newcommand{\Chain}{\mathsf{Chain}}
 \newcommand{\paraxiom}{\textsc{Paraxiom}}
 \newcommand{\qh}{\textsc{QuantumHarmony}}
-\newcommand{\nc}{\textsc{NeoCarbone}}
-\newcommand{\via}{\textsc{V.I.A.\ Solutions}}
-\newcommand{\pxvia}{\paraxiom-\via}
+
+% =============================================================================
+% Build variant switch
+% =============================================================================
+% Default: internal build (includes §14 Implementation roadmap).
+% Publication build: pass \def\BUILDPUBLIC{} on the xelatex command line,
+% e.g.  xelatex "\def\BUILDPUBLIC{}\input{main}"
+% This omits §14 and tightens the §1.4 \Cref.
+\newif\ifpublicrelease
+\ifdefined\BUILDPUBLIC
+  \publicreleasetrue
+\else
+  \publicreleasefalse
+\fi
 
 % =============================================================================
 % Title block
@@ -167,7 +178,7 @@
   \footnotesize Paraxiom Technologies Inc.\\
   \footnotesize \texttt{sylvain@paraxiom.org}
 }
-\date{\small May 15, 2026}
+\date{\small May 22, 2026}
 
 % =============================================================================
 \begin{document}
@@ -185,20 +196,65 @@ biological, machine, and artificial-intelligence cases under a single
 schema with six accretion layers and a four-tier permanence hierarchy
 for substrate-level identifiers.
 
-We prove four results that bear directly on engineering: (i)~Founding
-uniqueness --- every identity locus has exactly one origin event;
-(ii)~Tier monotonicity --- the permanence of an identity claim is
-non-increasing in the tier of its substrate identifier;
-(iii)~Cryptographic survival --- only post-quantum-signed identities
-remain verifiable past a cryptographically-relevant quantum computer
-(CRQC) event; and (iv)~Crypto-shredding completeness --- master-key
-deletion renders all envelope-encrypted credentials computationally
-inaccessible without recourse to unpinning.
+We state and prove seven results that bear directly on engineering:
+(i)~Founding uniqueness --- every identity locus has exactly one
+origin event; (ii)~Tier monotonicity --- the permanence of an
+identity claim is non-increasing in the tier of its substrate
+identifier; (iii)~Stratum well-foundedness --- every scoped or agent
+identity traces in finite steps to a person- or organization-rooted
+identity; (iv)~LLM instance non-identity --- two LLM instances with
+identical weights but disjoint deployment IDs are distinct identity
+loci; (v)~Cryptographic survival --- only post-quantum-signed
+identities remain verifiable past a cryptographically-relevant
+quantum computer (CRQC) event; (vi)~Crypto-shredding completeness ---
+master-key deletion renders all envelope-encrypted credentials
+computationally inaccessible without recourse to unpinning; and
+(vii)~Verification-time accountability --- the reference
+\texttt{verify\_chain} procedure terminates correctly in a finite
+number of steps. The seven theorems are accompanied by a Lean~4
+formalization \cite{cormier-identity-arch-lean-2026} (Mathlib
+v4.27.0) that builds cleanly with zero sorries: four of the seven
+(founding uniqueness, stratum well-foundedness, LLM instance
+non-identity, verification-time accountability) are kernel-checked
+deductively from the model primitives; the remaining three (tier
+monotonicity, cryptographic survival, crypto-shredding completeness)
+are kernel-checked at the chain-reduction layer relative to named
+cryptographic and probabilistic axioms (FIPS 203/204/205 EUF-CMA,
+Shor against classical discrete log, AES-256-GCM IND-CPA, and an
+empirical permanence-tier rate ordering) --- the same convention as
+EasyCrypt and CryptoVerif. The repository pins the same
+Lean/Mathlib versions as Paraxiom's other formal-verification
+projects.
+
+The treatise also names four distinct sources from which identity
+content arises --- externally witnessed, self-asserted, cumulatively
+earned, and algorithmically derived --- and formalizes self-assertion
+as a first-class entry in the accountability chain, signed by the
+locus's own key. A companion subsection scopes non-consensual
+third-party identity (data-broker dossiers, surveillance records,
+algorithmic scoring labels) explicitly out of the accountability-chain
+primitive, names the asymmetry against user-controlled disclosure, and
+points to the regulatory layer (GDPR Art.~17, CCPA \S{}1798.105) that
+addresses it. A hypergraph generalization of the binary relational
+graph promotes higher-arity identity facts (joint authorship,
+committee-ratifies-charter, multi-party agreements) to first-class
+status, with the \emph{identity-state hash}
+$h_{\identity}(t) = H(\founding \,\Vert\, \accretion_{\le t} \,\Vert\, \mathcal{H}_{\le t})$
+addressing identity by current state rather than by a fixed handle.
+The treatise covers six founding-event domains: human, machine,
+container, process, LLM substrate, LLM instance, and physical good
+(NFC/RFID-anchored, NFT-bound) --- the last is integrated with the
+production NFT-identity lane (Aura, Arianee, VeChain, ERC-6551).
 
 We survey the state of digital identity as of May 2026, noting that no
 major civic identity system runs post-quantum signatures in production
 despite regulatory deadlines of 2030--2035, and that AI agent identity
-is a standards vacuum.
+is a standards vacuum. A dedicated positioning subsection tabulates
+the model-layer primitives this treatise contributes over and above
+the W3C VC~2.0 (Recommendation, 15~May~2025) and DIDs~v1.1 (Candidate
+Recommendation Snapshot, 5~March~2026) stack: post-quantum signatures,
+strata, hypergraph state, physical-good integration, accountability
+tracing, and crypto-shredding are not in the published W3C corpus.
 
 We then present the \paraxiom\ architecture: a three-tier system
 combining on-chain post-quantum primitives (\qh, with SPHINCS+ and
@@ -253,8 +309,8 @@ This claim holds for humans, for processes, for AI agents, for swarms,
 for organizations. The substrate differs; the accretion logic is
 identical. We will state this formally
 (\Cref{def:identity-locus,def:accretion-chain}), prove that it
-implies four engineering invariants
-(\Cref{thm:founding-uniqueness,thm:tier-monotonicity,thm:cryptographic-survival,thm:crypto-shredding}),
+implies seven engineering invariants
+(\Cref{thm:founding-uniqueness,thm:tier-monotonicity,thm:stratum-wellfounded,thm:llm-non-identity,thm:cryptographic-survival,thm:crypto-shredding,thm:verify-action-time}),
 and demonstrate that the \paraxiom\ architecture realizes them.
 
 \subsection{Why now}
@@ -320,8 +376,13 @@ develop the formal model. \Cref{sec:landscape} surveys the deployed
 state of digital identity in May~2026. \Cref{sec:paraxiom-architecture}
 presents the engineering realization, with proofs of crypto-shredding
 completeness and verification-time accountability enforcement.
+\ifpublicrelease
+\Cref{sec:future,sec:conclusion} discuss scenario projections and
+concluding remarks.
+\else
 \Cref{sec:future,sec:roadmap,sec:conclusion} discuss scenario
 projections, implementation sequencing, and concluding remarks.
+\fi
 Appendices give detailed proofs, pallet API specifications, and
 sources.
 
@@ -457,6 +518,279 @@ An identity record without a verifiable origin transaction is
 malformed.
 \end{remark}
 
+\subsection{Sources of identity content}\label{subsec:sources}
+
+\Cref{thm:founding-uniqueness} establishes \emph{when} identity
+begins; it does not establish \emph{who decides what an identity is}.
+The model above could be read as treating identity as a thing that
+arrives at a substrate from outside --- a witness signs, a
+manufacturer fuses, a deployer assigns. This is not the complete
+picture. We name four distinct sources from which identity content
+arises, and posit that a complete identity is a composition of all
+four; no source has presumptive priority over the others, and the
+chain records which source contributed which claim.
+
+\begin{description}
+\item[Externally witnessed.] A claim attested by a party other than
+  the locus itself: the birthing parent and attending clinicians at
+  the founding event, a KYC issuer's bundle, a hardware manufacturer's
+  endorsement key. These claims populate $L_2$ (relational) and $L_4$
+  (civic).
+\item[Self-asserted.] A claim signed by the locus itself with its own
+  $L_3$ key, asserting content about itself: a chosen name, a pronoun
+  set, a role title, a scope statement, a pseudonymous handle. We
+  distinguish self-assertion from $L_1$ narrative: $L_1$ asserts
+  \emph{continuity} (``I am the same entity that did $X$''), while
+  self-assertion asserts \emph{content} (``I am Alex''; ``my pronouns
+  are \ldots''; ``I act as a code reviewer for repository $R$'').
+\item[Cumulatively earned.] A claim that accrues over time through
+  behavior: reputation tokens in a body, signed attestations of
+  completed work, settled-and-not-disputed actions. Populates $L_5$.
+\item[Algorithmically derived.] A claim computed from substrate state
+  without intentional choice: a weights hash, a deployment identifier,
+  a TPM-attested measurement. Populates $L_0$.
+\end{description}
+
+The architecture records all four kinds without imposing a global
+precedence. Different verifiers attach different evidentiary weight to
+each source for different actions: a civic eligibility check requires
+$L_4$; a credential-vault interaction requires the locus's own $L_3$
+signature; an arbitrary self-asserted name is sufficient for routine
+social interaction but does not unlock jurisdictional acts. The
+user-controlled disclosure principle (\Cref{def:user-controlled-disclosure})
+is the formal counterpart: the holder chooses which sources to reveal
+per action; relying parties decide what weight to assign.
+
+\begin{definition}[Self-assertion]\label{def:self-assertion}
+A \emph{self-assertion} is a claim $a_i = (L_i, t_i, c_i, \sigma_i, \rho_i) \in \accretion$
+in which the signature is produced by the locus's own $L_3$ key,
+$\sigma_i = \mathrm{Sign}_{sk(\identity)}(c_i)$, and the claim content
+$c_i$ asserts a property of $\identity$ itself. Self-assertions are
+recorded with the same primitives as any other claim; the chain
+adjudicates only their cryptographic well-formedness, not their
+external validity.
+\end{definition}
+
+\begin{remark}
+\Cref{def:self-assertion} formalizes that a locus has its own voice
+in its accountability chain. The chain is not a record kept
+\emph{about} the locus by others; it is a record kept \emph{with} the
+locus, in which the locus's signed claims about itself are first-class
+entries. The architecture's neutrality on what may be asserted is the
+formal counterpart of user-controlled disclosure: the locus chooses
+what to claim and what to reveal; the chain witnesses the choice;
+relying parties decide what weight to assign.
+\end{remark}
+
+The hypergraph generalization of the relational structure and the
+\emph{identity-state hash} primitive are developed formally in
+\Cref{subsec:hypergraph}.
+
+\subsection{Non-consensual third-party identity (out of scope)}\label{subsec:adversarial}
+
+The four sources of \Cref{subsec:sources} share a precondition: the
+locus is a co-author of its own chain --- either by signing claims
+itself, by being knowably attested by named witnesses, by accumulating
+behavior on a chain it can read, or by being the substrate to which an
+algorithmic identifier is bound. A distinct and consequential class of
+identity-shaped records does not satisfy this precondition. We name
+the class explicitly, scope the model against it, and identify the
+regulatory layer that addresses it.
+
+\paragraph{The class.} \emph{Non-consensual third-party identity}
+denotes records about a locus, maintained by parties other than the
+locus, without the locus's participation, signature, or read access.
+Canonical instances include:
+\begin{itemize}
+\item \textbf{Commercial dossiers}: data-broker files (Acxiom,
+  Experian, LexisNexis), advertising identifiers (IDFA, AdID, browser
+  fingerprints), customer-lifetime-value scores, shadow profiles
+  maintained on non-users.
+\item \textbf{Surveillance records}: targeted-individual profiles
+  (e.g., Pegasus), persona-tracking and selector databases, watchlist
+  entries, biometric enrollment without informed consent (e.g.,
+  Worldcoin's iris incentive scheme, certain border-control programs).
+\item \textbf{Algorithmic labels}: credit scores, insurance-risk
+  scores, social-credit-style state scoring, ML-classifier verdicts
+  (``bot,'' ``high-risk traveler,'' ``inauthentic content'') that
+  become operationally identity-bearing.
+\item \textbf{OSINT / doxing compilations}: aggregated open-source
+  intelligence dossiers, leak-database entries, hostile correlations
+  across breached identifiers.
+\item \textbf{Coerced enrollment}: identity records produced under
+  conditions that vitiate consent (refugee-status biometrics,
+  conscript records, mandatory enrollment under sanction).
+\end{itemize}
+
+\paragraph{Scope decision.} A record of this class is \emph{not} an
+accountability chain in the sense of \Cref{def:accretion-chain}. The
+chain is co-authored by definition: claims are added either by the
+locus itself (\Cref{def:self-assertion}) or by named witnesses whose
+attestations the locus can read, verify, and contest. A record kept
+about a locus that the locus cannot access satisfies none of these
+conditions. Treating such records as accountability chains would
+collapse the analytical distinction between the locus's own chain and
+records held against it by adversaries; the seven results of this
+treatise (and in particular stratum well-foundedness,
+\Cref{thm:stratum-wellfounded}) depend on co-authorship at S1.
+
+\paragraph{The user-controlled disclosure asymmetry.} The
+user-controlled disclosure principle (\Cref{def:user-controlled-disclosure})
+governs disclosure \emph{from} chains the locus co-authors. It has no
+operative counterpart over non-consensual third-party records: the
+locus cannot choose what is revealed from a record it does not hold,
+cannot read, and may not know exists. This asymmetry is a structural
+property of the present architecture; closing it is not an engineering
+problem internal to the chain but a regulatory and political problem
+external to it.
+
+\paragraph{Regulatory layer.} Remedies for non-consensual third-party
+identity exist outside the chain. GDPR Article~17 (right to erasure)
+and CCPA \S{}1798.105 (right to deletion) compel deletion of personal
+data on request; fair-credit-reporting acts in multiple jurisdictions
+compel disclosure and dispute of scoring records; sectoral regimes
+(e.g., the EU AI Act for high-risk classifiers, ePrivacy for tracking
+identifiers) impose transparency and consent obligations. These
+regimes restrict third-party records; they do not produce
+accountability chains, and the architecture neither implements nor
+displaces them. A locus engaged in a dispute with a data broker, an
+employer, an intelligence agency, or a scoring authority operates
+against that party under the applicable regulatory regime, not through
+the chain.
+
+\paragraph{Research directions.} Closing the asymmetry is an open
+problem. Active directions include differential-privacy-preserving
+public registries (in which the existence and aggregate properties of
+adversarial records can be audited without revealing individual
+content), regulatory transparency-by-default for data brokers and
+high-impact classifiers, and adversarial-disclosure auditing that
+produces verifiable evidence of unauthorized profiling. We commit to
+naming the class so that relying parties, regulators, and loci
+themselves treat it correctly; we do not commit the architecture to
+a solution.
+
+\subsection{Hypergraph identity state}\label{subsec:hypergraph}
+
+The relational graph $\relations$ in \Cref{def:identity-locus} is
+\emph{binary}: a relation $\relations \subseteq \mathbb{I} \times \mathbb{I}$
+between pairs of identity loci. Binary relations adequately model
+parent-child stratum links, peer attestations, and bilateral
+agreements --- and these account for most chain primitives in
+\Cref{sec:paraxiom-architecture}. They do not adequately model the
+intrinsically higher-arity relationships in which identity is also
+constituted: a paper by $n$ co-authors is a single 4-ary or 7-ary fact,
+not a quadratic in $\binom{n}{2}$ pairs; a committee that ratifies a
+charter binding an organization is a 3-ary fact (committee, charter,
+organization); a treaty among five sovereigns is a 5-ary fact. The
+\emph{hypergraph generalization} promotes the relational structure to
+the natural domain for these facts.
+
+\begin{definition}[Identity hypergraph]\label{def:hypergraph}
+An identity hypergraph over an identity universe $\mathbb{I}$ is a pair
+$\mathcal{H} = (V, E)$ where $V \subseteq \mathbb{I}$ is the vertex
+set and $E \subseteq 2^V \setminus \{\emptyset\}$ is the hyperedge
+set. Each hyperedge $e \in E$ is annotated with a tuple
+$(t_e, \tau_e, \mu_e, \Sigma_e)$ in which $t_e$ is the time of
+formation, $\tau_e$ is the hyperedge kind (e.g.\
+\textsf{joint-authorship}, \textsf{ratifies-charter},
+\textsf{multi-party-signature}, \textsf{cross-body-endorsement}),
+$\mu_e$ is the optional payload (e.g.\ the charter hash, the document
+content), and $\Sigma_e$ is the set of cryptographic signatures
+attesting the hyperedge (one per participating vertex when the kind
+requires unanimity).
+\end{definition}
+
+\begin{remark}
+The binary relation $\relations$ is the restriction of $\mathcal{H}$
+to hyperedges of cardinality two. Every result in this treatise that
+refers to $\relations$ remains valid under $\mathcal{H}$ by considering
+only its $\binom{V}{2}$ projection; the hypergraph extension is strictly
+generative.
+\end{remark}
+
+We give three concrete examples.
+
+\begin{description}
+\item[Joint authorship.] An academic paper with four co-authors
+  $\{\identity_1, \dots, \identity_4\}$ is a single hyperedge
+  $e_{\text{auth}} = \{\identity_1, \identity_2, \identity_3, \identity_4\}$
+  of kind \textsf{joint-authorship}, payload the paper's hash,
+  signatures the four co-authors' Falcon-512 signatures over the hash.
+  This is one fact, not six pairwise facts; the binary projection
+  loses the joint character.
+\item[Committee ratifies charter.] A $G_2$ committee body $B_c$
+  ratifies a charter $\chi$ that binds a $G_3$ organization $B_o$.
+  The fact is a 3-uniform hyperedge $\{B_c, \chi, B_o\}$ of kind
+  \textsf{ratifies-charter}; payload the on-chain charter CID;
+  signatures from the committee's authorizing members.
+\item[Multi-party signed agreement.] A five-party agreement on a
+  shared protocol --- e.g., five sovereign $G_5$ bodies acknowledging
+  the same cryptographic standard --- is a 5-ary hyperedge with the
+  agreement's hash as payload and one signature per party in
+  $\Sigma_e$. A binary representation would require
+  $\binom{5}{2}=10$ pairwise treaties and could not distinguish a
+  bilateral agreement from a multilateral one.
+\end{description}
+
+\begin{definition}[Identity-state hash]\label{def:state-hash}
+Let $\identity$ be an identity locus with founding event $\founding$,
+accretion chain prefix $\accretion_{\le t}$, and hypergraph
+restriction $\mathcal{H}_{\le t}(\identity) \subseteq \mathcal{H}$
+consisting of the hyperedges incident on $\identity$ at time $t$.
+The \emph{identity-state hash} of $\identity$ at $t$ is
+\[
+  h_{\identity}(t) \;=\; H\bigl(\,
+    \founding \;\Vert\;
+    \mathrm{Ser}(\accretion_{\le t}) \;\Vert\;
+    \mathrm{Ser}(\mathcal{H}_{\le t}(\identity))\,\bigr),
+\]
+where $H$ is a collision-resistant hash function (Blake2-256 in the
+chain implementation) and $\mathrm{Ser}(\cdot)$ is a canonical
+serialization that fixes the order of accretion entries by timestamp
+and the order of hyperedges by a lexicographic key over their
+participants.
+\end{definition}
+
+\begin{remark}[Properties]\label{rem:state-hash-properties}
+Three immediate properties of \Cref{def:state-hash}:
+(i)~\emph{Binding}: by collision resistance of $H$, no
+computationally-bounded adversary can produce a distinct state
+$(\founding', \accretion', \mathcal{H}')$ that hashes to the same
+value. (ii)~\emph{Evolution monotonicity}: $h_{\identity}(t)$ changes
+exactly when the chain accretes a new claim or when a hyperedge
+incident on $\identity$ is added or revoked; key rotation alone does
+not change it (since $sk(\identity)$ is not in the preimage), and
+substrate change alone does not change it (since $\substrate$ is not
+in the preimage either). (iii)~\emph{Selective-disclosure
+compatibility}: any subset $S \subseteq \mathcal{H}_{\le t}(\identity)$
+of incident hyperedges can be presented to a verifier along with a
+merkle path against $h_{\identity}(t)$; the verifier confirms
+membership of $S$ in $\identity$'s state at $t$ without learning the
+remaining hyperedges. The merkle construction over
+$\mathcal{H}_{\le t}(\identity)$ is implementation-defined; the
+identity-state hash binds it.
+\end{remark}
+
+\paragraph{Positioning against W3C RDF graphs.} The W3C Verifiable
+Credentials Data Model 2.0~\cite{w3c-vcdm-2} represents claims as RDF
+triples (subject, predicate, object), which form a binary
+edge-labelled graph. RDF can encode higher-arity facts via
+\emph{reification} or \emph{n-ary relation patterns}, but these are
+not native primitives: a 4-author paper expressed as RDF becomes a
+blank-node intermediary connecting four authorship-statement triples,
+losing the single-fact character. The hypergraph primitive of
+\Cref{def:hypergraph} is the direct representation; the W3C primitive
+is its emulation.
+
+\paragraph{Implementation status.} The v0.1 and v0.2 chain operate on
+the binary $\relations$ and do not realize the hypergraph extension;
+the identity-state hash is defined model-side but not exposed via an
+extrinsic. The v0.3 chain ships a \texttt{pallet-hypergraph-state}
+implementing $\mathcal{H}$ as a content-addressed hyperedge store
+with $h_{\identity}$ derived from on-chain state. Forward
+compatibility with v0.2 is preserved: every v0.2 relational fact
+appears as a 2-ary hyperedge in $\mathcal{H}$ without translation.
+
 % =============================================================================
 \section{Layer theory}\label{sec:layer-theory}
 % =============================================================================
@@ -541,16 +875,18 @@ A human identity begins not at conception (continuous chemical
 process) nor at issuance of the birth certificate (administrative
 echo), but at \emph{first individuation}: the moment after birth at
 which the organism's state is distinguishable from its parents'.
-Witnesses (mother, attending professional) populate the initial
-relational graph $\relations$.
+Witnesses (the birthing parent and attending clinicians) populate the
+initial relational graph $\relations$.
 
 \subsection{Machine founding}
 
-A host's identity begins at first boot, when the kernel writes
-\texttt{/etc/machine-id} via \texttt{systemd-machine-id-setup}, when
-entropy is harvested, and when initial cryptographic material (SSH
-host keys, TPM-derived keys) is established. We discuss the precise
-storage locations and their permanence tiers in \Cref{sec:machine-storage}.
+A host's identity begins at first boot: a host-unique identifier is
+written to persistent storage, entropy is harvested, and initial
+cryptographic material is established (TPM-derived keys, and the
+platform's host keypair --- SSH host keys on Linux, the System UUID
+plus Keychain enrollment on macOS, AIKs plus the MachineGuid on
+Windows). The precise storage locations vary by platform; we treat
+them per-OS in \Cref{sec:machine-storage}.
 
 \subsection{Container founding}
 
@@ -569,6 +905,42 @@ contrast, begins at \emph{first inference call} on a deployed
 endpoint, when the deployment ID is assigned. We elaborate the
 substrate--instance distinction in \Cref{sec:llm}.
 
+\subsection{Physical-good founding}\label{subsec:good-founding}
+
+A physical object --- a luxury watch, a bottle of wine, a passport
+book, a banknote, a sensor module, a vial of pharmaceutical, a piece
+of art --- bears identity as soon as it is individuated from a
+production batch. The founding event is one of:
+\emph{manufacture} (a serial number assigned and a tamper-resistant
+identifier bound: NFC tag, RFID, holographic seal, laser engraving,
+Physical Unclonable Function (PUF) measurement),
+\emph{mint} (for coins, banknotes, and minted collectibles),
+\emph{harvest} (for agricultural goods: a coffee lot, a wine vintage,
+a fishing catch), or
+\emph{packaging} (when individuation occurs at distribution rather
+than production --- e.g.\ a sealed unit-of-sale).
+
+A good is \emph{passively identity-bearing}: it does not initiate
+actions itself, but the substrate cryptographically anchors a chain of
+custody. The $L_3$ key associated with the good is typically the
+manufacturer's signature over the founding artifact (the chip's
+attested public key, the seal's hash); subsequent $L_5$ accretions
+record ownership transfers, authentication events at retail, repair
+records, and verifications by relying parties. The accountability
+chain runs from the manufacturer through every custodian to the
+present holder; broken-chain detection (a counterfeit) corresponds to
+verification failure of the chain.
+
+Production realizations as of May~2026 include LVMH's Aura blockchain
+(luxury goods, multi-brand, launched 2021), Arianee (luxury watches
+and jewellery, 2018), VeChain (food-trace, automotive parts,
+pharmaceutical cold-chain), IBM Food Trust (supply chain), Origin
+Protocol (collectibles), and the ERC-6551 token-bound-account
+ecosystem in which an individual NFT acts as both the identity record
+and a chain-native account for the physical object it represents. We
+return to the integration with these systems in
+\Cref{sec:landscape} \S~\ref{subsec:nft-identity}.
+
 \subsection{Unifying schema}
 
 \begin{table}[h]
@@ -577,12 +949,13 @@ substrate--instance distinction in \Cref{sec:llm}.
 \toprule
 \textsf{Domain} & \textsf{Substrate $\substrate$} & \textsf{Founding $\founding$} & \textsf{First $L_1$/$L_2$ accretion}\\
 \midrule
-Human    & Body            & Birth                  & Mother, witnesses\\
-Machine  & Hardware        & First boot             & Hostname, SSH host keys\\
-Container & Image           & \texttt{docker run}    & Container ID, mount state\\
+Human    & Body            & Birth                  & Birthing parent, attending clinicians\\
+Machine  & Hardware        & First boot             & Host identifier, first cryptographic material\\
+Container & Image           & Runtime instantiation  & Container ID, mount state\\
 Process  & Code binary     & First invocation       & PID, parent, env\\
 LLM substrate & Architecture + dataset & Weights init    & Checkpoint hash, training log\\
 LLM instance  & Weights         & First inference   & Deployment ID, context\\
+Physical good & Object          & Manufacture / mint / harvest & NFC or RFID chip ID, holographic seal, IoT binding\\
 \bottomrule
 \end{tabular}
 \caption{Founding events by substrate domain.}
@@ -788,6 +1161,12 @@ cryptographic claim; it inherits trust from its parent.
 
 A \emph{container} adds substrate cryptographic anchor by way of
 the image hash, which itself is signed by its publisher.
+
+\noindent We distinguish agency from \emph{passive identity-bearing}:
+a physical good (\Cref{subsec:good-founding}) bears identity but
+initiates no actions. Goods participate in accountability chains as
+loci attested-about, not as loci that attest. Their $L_3$ key is held
+by the manufacturer or current custodian, not by the good itself.
 
 A \emph{true agent}, in our sense, is a program acting on behalf of a
 principal. It requires:
@@ -1298,33 +1677,39 @@ reputation distribution.
 
 \subsection{Augmented democracy and multi-level structure}
 
-The \pxvia\ \emph{augmented democracy} architecture --- the joint work
-of \paraxiom\ and \via\ on transparent multi-stakeholder governance
-for cities and enterprises --- places governance bodies at multiple
-$G$-levels in interaction. The model is general; its first deployment
-is \textbf{\nc\ Governance}, the multi-stakeholder governance
-application built on the \nc\ side that consumes the \pxvia\ framework
-and applies it to NeoCarbone's FieldNOW product:
+The \emph{augmented democracy}
+architecture\footnote{The term \emph{augmented democracy} was
+introduced by the present author in August~2017
+\cite{cormier-augmented-democracy-2017}, predating the more widely
+known TED~talk popularization of a similar phrase (Hidalgo, September~2018)
+by approximately thirteen months. The 2017 work develops the
+machine-based societal model for curbing citizen cynicism that this
+treatise's governance layer realizes on chain.}
+described here --- transparent multi-stakeholder governance for cities
+and enterprises --- places governance bodies at multiple $G$-levels in
+interaction.
+The architecture is general; it admits a characteristic deployment
+pattern in which:
 \begin{itemize}
-\item A $G_2$ committee (e.g.\ NC's tech committee) makes product
-  decisions that bind a $G_3$ organization (NeoCarbone Inc.).
+\item A $G_2$ committee (e.g.\ a technical steering committee) makes
+  product decisions that bind a $G_3$ operating organization.
 \item The $G_3$ organization, via its $G_2$ committee, ships
   decisions as software changes attested on-chain by a $G_7$ protocol
-  body (\qh) through \texttt{axiom-attestation}.
+  body (\qh) through an attestation pallet.
 \item Customer organizations are themselves $G_3$ bodies operating on
   the platform; their internal $G_2$ committees use the same
   governance-body machinery, scoped to the customer's tenant context
   (an $S_2$ stratum identity).
-\item All of the above are subject to $G_5$ jurisdictional law
-  (e.g.\ Quebec / Canada) via the $G_3$ corporation's
+\item All of the above are subject to $G_5$ jurisdictional law (e.g.\
+  a national or provincial registrar) via the $G_3$ corporation's
   \texttt{jurisdictional\_anchor}, which links the body to its
   registering authority's $L_4$ claim.
 \end{itemize}
 
-The \pxvia\ work is the canonical augmented-democracy substrate;
-\nc\ Governance is the first deployment. Subsequent deployments
-(municipal-governance pilots and enterprise compliance pilots) will
-consume the same substrate.
+The architecture is the canonical augmented-democracy substrate
+specified by this treatise. Subsequent deployments (municipal-governance
+pilots and enterprise compliance pilots) consume the same substrate
+without modification.
 
 The chain holds all of these as first-class objects via
 \texttt{pallet-governance-bodies} (Appendix B). The verification
@@ -1506,6 +1891,86 @@ February~2026). Sismo wound down late~2024. Spruce~ID pivoted to
 government mDL integrations and now operates chain-agnostically.
 Proof-of-personhood remains unsolved with no production winner.
 
+\subsubsection*{NFT-based identity primitives}\label{subsec:nft-identity}
+
+A distinct lane within blockchain-anchored identity has emerged around
+NFT-based primitives that bind on-chain identity records to off-chain
+substrates --- humans, organizations, agents, and crucially
+\emph{physical goods} (\Cref{subsec:good-founding}). Four sub-lanes
+have material 2026 traction.
+
+\paragraph{Soulbound tokens (SBTs).} Proposed by Weyl, Ohlhaver, and
+Buterin in \emph{Decentralized Society: Finding Web3's Soul}
+\cite{weyl-soulbound-2022}, SBTs are non-transferable on-chain
+credentials whose binding to a holder is structural rather than
+market-mediated. The design space overlaps with this treatise's
+earned-reputation tokens (\Cref{sec:paraxiom-architecture}) and with
+verifiable-credential commitments, but the published SBT corpus does
+not commit to a post-quantum signature surface and does not formalize
+either stratum well-foundedness (\Cref{thm:stratum-wellfounded}) or
+verification-time accountability (\Cref{thm:verify-action-time}).
+
+\paragraph{Dynamic NFTs.} \cite{chainlink-dnft} An on-chain object
+whose state evolves through oracle inputs, time-based rules, or holder
+actions. The dynamic-NFT primitive is structurally adjacent to the
+identity-state hash of \Cref{def:state-hash}: both treat identity as
+an evolving on-chain commitment addressable by current state rather
+than by a fixed handle. Three differences are operational: (i)~most
+dynamic-NFT implementations carry a single integer or string state,
+not a hypergraph state; (ii)~the binding property of
+\Cref{rem:state-hash-properties} is not made explicit in the
+dynamic-NFT corpus; (iii)~the underlying signature surface remains
+classical (ECDSA on secp256k1) and offers no CRQC survival.
+
+\paragraph{ERC-6551 token-bound accounts.} \cite{erc-6551} Promotes
+individual NFTs to first-class identity-bearing accounts with their
+own asset balance and signing capability. The mechanism is
+structurally adjacent to this treatise's S4 agent-instance stratum
+(\Cref{def:stratification}): each token is an account, with the
+issuing NFT contract as a kind of parent. The chain semantics differ:
+ERC-6551 does not enforce the parent-identity chain that
+\Cref{thm:stratum-wellfounded} requires (an account's controller
+can change without recording lineage), and it does not formalize a
+revocation or crypto-shredding pathway.
+
+\paragraph{NFT-bound physical goods.} A production-scale lane in which
+the NFT serves as the digital twin of a physical object, with
+authentication anchored by NFC, RFID, holographic seal, or PUF
+measurement. Representative 2026 deployments:
+\emph{LVMH Aura} (multi-brand luxury, ~6M items registered across LVMH
+maisons; launched 2021),
+\emph{Arianee} (luxury watches and jewellery; founded 2018),
+\emph{VeChain} (food-trace, automotive parts, pharmaceutical
+cold-chain),
+\emph{IBM Food Trust} (supply-chain provenance across grower,
+processor, distributor, retailer), and
+\emph{Origin Protocol} (collectible goods).
+
+These systems realize physical-good identity in operation, mapping
+cleanly to the \emph{Physical good} domain row of Table~1: the
+manufacturer's signed founding event is anchored on chain; subsequent
+transfers, repairs, and authentication events accrete to the
+chain-of-custody. Architecturally, the present treatise's primitives
+extend these lanes in three directions:
+\begin{enumerate}
+\item Post-quantum signature surface (SPHINCS+/Falcon-512) on the
+  founding-event and custody-transfer signatures, which the
+  classical-signature lane cannot match;
+\item Formal accountability tracing (\Cref{thm:stratum-wellfounded},
+  \Cref{thm:verify-action-time}) over the chain-of-custody, with
+  finite-step termination at the manufacturer or jurisdictional
+  registrar;
+\item Hypergraph identity state (\Cref{def:hypergraph},
+  \Cref{def:state-hash}) for goods participating in multi-party
+  certifications (organic + fair-trade + provenance + jurisdictional
+  origin), which the single-integer-state of mainstream dynamic-NFT
+  implementations does not capture.
+\end{enumerate}
+
+The NFT-based lane is in production but \emph{classical-signature-only}
+as of May~2026; migration to a post-quantum signature surface is not
+on any major roadmap and is the lane this treatise opens.
+
 \subsection{Hardware-rooted identity}
 
 \begin{itemize}
@@ -1588,6 +2053,90 @@ uncontested lanes: post-quantum civic-grade identity, agent
 cryptographic identity, model substrate attestation.}
 \label{tab:positioning}
 \end{table}
+
+\subsection{Positioning vs. W3C VC 2.0 and DIDs 1.1}\label{subsec:w3c-positioning}
+
+The W3C identity stack as of May~2026 consists of \emph{Verifiable
+Credentials Data Model 2.0} (Recommendation, 15~May~2025
+\cite{w3c-vcdm-2}) and \emph{Decentralized Identifiers v1.1}
+(Candidate Recommendation Snapshot, 5~March~2026 \cite{w3c-did-1-1}),
+complemented by the OpenID Foundation's OpenID4VP / OpenID4VCI 1.0
+Final wire protocols. Together these define point-in-time credential
+issuance, holder-mediated selective-disclosure presentation, and
+identifier resolution. They do \emph{not} define a number of
+primitives this treatise contributes; we tabulate the gap explicitly
+in \Cref{tab:w3c-positioning}.
+
+\begin{table}[h]
+\centering
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}p{5.4cm}p{4.3cm}p{4.8cm}@{}}
+\toprule
+\textsf{Treatise primitive} & \textsf{W3C 2025--2026 status} & \textsf{Where defined here}\\
+\midrule
+Post-quantum signature surface (SPHINCS+, Falcon-512) & Mentioned as
+future work in VC~2.0; no normative requirement & \Cref{sec:crypto-substrate}, \Cref{thm:cryptographic-survival}\\
+Substrate attestation (LLM weights, hardware) & Not addressed &
+\Cref{sec:llm}, \texttt{pallet\_substrate\_attestation}\\
+Six-layer accretion model ($L_0$--$L_5$) & Not formalized; VC has
+credentials, not layers & \Cref{sec:layer-theory}\\
+Permanence-tier hierarchy (Tier~0--3) & Not formalized & \Cref{sec:machine-storage}, \Cref{thm:tier-monotonicity}\\
+Five identity strata (S1--S5) with parent-identity well-foundedness &
+Not formalized; VC has subject/issuer/holder, not strata &
+\Cref{def:stratification}, \Cref{thm:stratum-wellfounded}\\
+LLM instance non-identity & Not addressed &
+\Cref{thm:llm-non-identity}\\
+Self-assertion as formal layer (signed by $sk(\identity)$) & Implicit
+in VC ``holder'' role; not distinguished from external attestation &
+\Cref{def:self-assertion}\\
+Non-consensual third-party identity (out of scope, named) & Not
+addressed & \Cref{subsec:adversarial}\\
+Hypergraph identity state ($\mathcal{H}$, $h_\identity(t)$) & RDF
+graph is binary; hyperedges via reification only & \Cref{def:hypergraph}, \Cref{def:state-hash}\\
+Physical-good identity as a first-class founding domain & Not
+addressed; NFT lane is separate ecosystem (Aura, Arianee) &
+\Cref{subsec:good-founding}\\
+Crypto-shredding completeness (right-to-erasure via key destruction) &
+Not addressed; status-list revocation is the W3C primitive &
+\Cref{thm:crypto-shredding}\\
+Verification-time accountability (finite-step chain verification) &
+Not formalized & \Cref{thm:verify-action-time}\\
+Governance bodies as on-chain objects with chartered scope bounding &
+Not addressed & \Cref{def:governance-body}, \Cref{thm:scope-bounding}\\
+Multi-level participation independence \& reputation non-transitivity &
+Not addressed & \Cref{thm:multi-level}, \Cref{thm:rep-nontransitive}\\
+Five-tier privacy model ($\Pi_0$--$\Pi_4$) with user-controlled
+posture per action & Selective disclosure exists; tier model and
+mixed-tier leak are not formalized & \Cref{def:privacy-tier}, \Cref{rem:mixed-tier-leak}\\
+zk-KYC: ZK proof of credential-issuer-set membership without holder
+disclosure & Possible to construct on VC primitives; no normative
+profile & \Cref{sec:privacy} \S~12.8\\
+\bottomrule
+\end{tabular}
+\caption{Treatise primitives positioned against W3C VC~2.0 and DIDs~1.1
+as published through May~2026. The treatise is forward-compatible with
+the W3C stack at the wire-protocol layer (OID4VP/VCI, SD-JWT~VC, ISO
+mdoc) and extends it at the model layer with post-quantum signatures,
+formal strata, hypergraph identity state, physical-good integration,
+and the seven principal theorems summarized in \Cref{sec:conclusion}.}
+\label{tab:w3c-positioning}
+\end{table}
+
+\noindent\textbf{Reading.} W3C 2025--2026 standardizes the wire format
+and resolution layer of digital identity: how a credential is encoded,
+how an identifier resolves to a document, how a holder presents a
+selected subset of claims to a verifier. These are presentation-time
+primitives. The present treatise contributes the \emph{model} layer
+beneath them: what identity \emph{is} as a formal object, how it
+accretes, how it traces, how it survives a CRQC event, and how it
+extends to substrates the W3C corpus has not yet named (LLM weights,
+agent instances, physical goods, hypergraph relations). The two
+stacks compose: a Paraxiom-chain identity can issue and present
+verifiable credentials in W3C-compliant formats; conversely, a
+W3C-issued credential can be committed in the credential-vault
+(\Cref{thm:crypto-shredding}) and presented under any of the privacy
+tiers of \Cref{def:privacy-tier}.
 
 % =============================================================================
 \section{The \paraxiom\ architecture}\label{sec:paraxiom-architecture}
@@ -1818,6 +2367,85 @@ Conditions (i) and (iii) are checked by direct query against
 Condition~(ii) terminates in finite steps by
 \Cref{thm:stratum-wellfounded}.
 \end{proof}
+
+\subsection{Costs and limitations}\label{subsec:costs}
+
+The architecture is engineering, and engineering has costs. We name
+them explicitly rather than letting them be discovered at integration
+time.
+
+\paragraph{Signature storage.} Post-quantum signatures are
+substantially larger than classical ones: SPHINCS+-256f-simple is
+49{,}856 bytes; Ed25519 is 64 bytes. Falcon-512 reduces the gap
+(666~bytes) but remains an order of magnitude larger. Every
+identity-bearing transaction carries at least one signature; many
+carry several. The chain's storage growth rate is therefore tied to
+the signature surface chosen per pallet, and SPHINCS+-dominated
+deployments will see roughly $\mathrm{O}(10^3 \times)$ greater
+per-extrinsic chain bytes than classical Substrate baselines. The
+trade-off is intentional --- chain history must survive CRQC --- but
+operators should budget for it.
+
+\paragraph{Hybrid signature complexity.} Until the post-quantum
+ecosystem is mature, many deployments will run hybrid (classical +
+post-quantum) signatures. This doubles the per-extrinsic signing and
+verification work and the storage footprint. \Cref{tab:positioning}
+records this as a near-term operational reality rather than a
+design defect.
+
+\paragraph{IPFS pinning operational burden.} The credential-vault
+flow places ciphertexts on IPFS, addressed by CID. Persistence
+requires active pinning; an unpinned ciphertext can be lost even
+though its on-chain commitment remains. Operators must run pinning
+infrastructure (their own or third-party) and account for outage and
+unavailability. We do not commit the architecture to a specific
+pinning strategy.
+
+\paragraph{Cross-substrate implementation complexity.} Unifying
+human, machine, container, process, LLM substrate, LLM instance, and
+physical-good founding events under a single schema
+(\Cref{tab:founding-schema}) is elegant in the model and complex in
+realization: each substrate has its own attestation pipeline,
+hardware-root dependence, and failure modes. The unified type
+\texttt{Identity} carries optional fields per stratum; pallet-level
+validation must enforce stratum-specific invariants the type alone
+does not encode. This is recognized engineering debt of the
+architecture, not solved by the model.
+
+\paragraph{Hypergraph state scaling.} The identity-state hash
+$h_{\identity}(t)$ (\Cref{def:state-hash}) re-hashes the
+serialization of all hyperedges incident on $\identity$. For
+identities with many incident hyperedges (e.g., long-lived
+organizations or protocol bodies), the recomputation cost scales
+linearly in the cardinality. A merkleized implementation reduces this
+to logarithmic for incremental updates; we treat the construction as
+an implementation detail of \texttt{pallet-hypergraph-state} rather
+than a model-layer commitment.
+
+\paragraph{Off-chain mirror invalidation.} The Postgres+Redis mirror
+(\Cref{tab:three-tier}) is rebuildable from chain plus IPFS but
+not always cheaply: a full rebuild walks the entire chain history and
+re-fetches all pinned payloads. Operators should plan for incremental
+event subscription, snapshotting, and graceful catch-up after
+extended downtime.
+
+\paragraph{Governance of governance.} Many architectural primitives
+(stratum lattice, governance-body taxonomy, privacy-tier mapping,
+ZK-augmented extrinsic set) require ongoing curation: how new strata
+are admitted, how governance bodies dispute or merge, how privacy
+tiers extend. The treatise specifies an initial set; the chain's
+upgrade mechanism (runtime spec version) is the operational tool for
+extending it. There is no escape from the recursive question
+``\emph{who governs the chain that governs}.''
+
+\paragraph{What the model does \emph{not} solve.} The
+\Cref{subsec:adversarial} scoping is restated here for clarity: this
+architecture provides no recourse against non-consensual third-party
+identity records. A locus engaged in a dispute with a data broker, a
+state surveillance program, an algorithmic-scoring authority, or an
+employer dossier operates under the applicable regulatory regime, not
+through the chain. Closing that asymmetry is research, not
+engineering, and a different work.
 
 % =============================================================================
 \section{Privacy, anonymity, and user-controlled disclosure}\label{sec:privacy}
@@ -2210,6 +2838,7 @@ infrastructure; fragmentation if states build it without
 interoperability; augmentation if deliberate choice produces
 post-quantum, decentralized, accountability-preserving substrates.
 
+\ifpublicrelease\else
 % =============================================================================
 \section{Implementation roadmap}\label{sec:roadmap}
 % =============================================================================
@@ -2239,7 +2868,8 @@ We sequence the engineering work.
 \end{enumerate}
 
 Total estimated effort: 3--4 weeks of focused work, parallelizable
-with gov-app v0.2 work that depends on the migrated schema.
+with downstream consumer work that depends on the migrated schema.
+\fi
 
 % =============================================================================
 \section{Conclusion}\label{sec:conclusion}
@@ -2255,9 +2885,11 @@ possibility of new kinds of accountability loci we cannot fully
 enumerate today.
 
 We have stated identity formally as a layered accountability chain
-above a founding individuation event, proven four invariants
-(founding uniqueness, tier monotonicity, cryptographic survival,
-crypto-shredding completeness), surveyed the 2026 deployed landscape
+above a founding individuation event, proven seven invariants
+(founding uniqueness, tier monotonicity, stratum well-foundedness,
+LLM instance non-identity, cryptographic survival, crypto-shredding
+completeness, and verification-time accountability), surveyed the
+2026 deployed landscape
 and located \paraxiom's three uncontested lanes (PQ civic-grade,
 agent cryptographic identity, model substrate attestation), and
 specified the on-chain plus IPFS plus mirror architecture that
@@ -2709,16 +3341,38 @@ failures persist after a decade.} June~2025.
 \bibitem{linux-foundation-aaif} Linux Foundation. \emph{Agentic AI
 Foundation launch announcement.} December~2025.
 
+\bibitem{cormier-augmented-democracy-2017} S.~Cormier.
+\emph{Augmented Democracy: A Machine-Based Societal Model for Curbing
+Citizen Cynicism.} August~2017. Source repository:
+\url{https://github.com/sylvaincormier/augmented-democracy} (initial
+commit 2018-04-15, material drafted August~2017).
+
+\bibitem{weyl-soulbound-2022} E.~G. Weyl, P.~Ohlhaver, and V.~Buterin.
+\emph{Decentralized Society: Finding Web3's Soul.} SSRN, May~2022.
+
+\bibitem{chainlink-dnft} Chainlink Labs. \emph{Dynamic NFTs:
+On-chain assets that evolve with oracle inputs.} Technical brief,
+2023--2024.
+
+\bibitem{erc-6551} J.~Hwang, B.~Burns, S.~Vroegop, V.~Mahabadi, and
+contributors. \emph{ERC-6551: Non-fungible Token Bound Accounts.}
+Ethereum Improvement Proposal, finalized 2024.
+
+\bibitem{cormier-identity-arch-lean-2026} S.~Cormier.
+\emph{identity-architecture-lean: Lean 4 formalization of the seven
+identity-architecture theorems.} Lean 4.27.0 + Mathlib v4.27.0,
+May~2026. Source repository:
+\url{https://github.com/Paraxiom/identity-architecture-lean}.
+
 \end{thebibliography}
 
 \bigskip
 
-\noindent\emph{Document version}: 1.0, May~15,~2026.
+\noindent\emph{Document version}: 1.0, May~22,~2026.
 \emph{Companion materials}:
 \texttt{IDENTITY-ARCHITECTURE.md} (narrative version);
 \texttt{IDENTITY-PALLETS-DESIGN.md} (engineering specification);
 \texttt{IDENTITY-SUBSTRATES.md} (substrate spec + ephemeral identities);
-\texttt{FIELDNOW-PERSONAS.md} (\nc-specific persona mapping);
 \texttt{GOVERNANCE-ROADMAP.md} \S{}10 (product roadmap).
 \emph{Repository}: \url{https://github.com/Paraxiom/identity-architecture}.
 
@@ -2745,12 +3399,6 @@ be able to enclose access to a verifiable accountability primitive.
 Cormier, S.\ \emph{Identity as Accountability Chain: A Post-Quantum
 Architecture for Persistent Identity Across Human, Machine, and AI
 Agent Substrates.} Paraxiom Technologies Inc., 2026.
-
-\noindent\textbf{Upstream.}\;\;
-The Paraxiom-V.I.A.\ augmented-democracy work
-(\paraxiom\ $\times$ \via, with Olivier Garand) is the canonical
-substrate; this treatise contributes the formal identity model and
-the post-quantum chain anchoring.
 
 \noindent\textbf{Derivatives.}\;\;
 Adaptations of the treatise text must be share-alike under

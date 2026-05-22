@@ -11,11 +11,6 @@ The architecture described herein draws on:
     Apache 2.0) with PQ signature size accommodations and the
     parity-scale-codec fork.
 
-  - The Paraxiom-V.I.A. augmented-democracy framework, a joint effort
-    of Paraxiom Technologies Inc. and V.I.A. Solutions (Olivier
-    Garand), aimed at transparent multi-stakeholder governance for
-    cities and enterprises.
-
   - NIST post-quantum cryptography standards FIPS 203 (ML-KEM),
     FIPS 204 (ML-DSA), and FIPS 205 (SLH-DSA), published 13 August
     2024.

@@ -8,14 +8,17 @@ accountability loci.
 
 ## Files
 
-- `main.tex` — the document (~1200 lines LaTeX, ~29 pages PDF)
-- `build.sh` — xelatex build script (3-pass)
-- `build/main.pdf` — output
+- `main.tex` — the document (~2000 lines LaTeX, ~52 pages PDF)
+- `build.sh` — xelatex build script (3-pass; produces both internal + publication PDFs)
+- `build/main.pdf` — internal output (includes §14 Implementation roadmap)
+- `build/main-zenodo.pdf` — publication output (§14 omitted; uploaded to Zenodo)
 
 ## Build
 
 ```bash
-./build.sh           # incremental
+./build.sh           # builds both internal + publication
+./build.sh internal  # internal only
+./build.sh publish   # publication only
 ./build.sh clean     # clean rebuild
 ```
 
@@ -27,21 +30,24 @@ Requires xelatex with `fontspec`, `unicode-math`, `amsthm`,
 | § | Topic |
 |---|---|
 | 1 | Introduction |
-| 2 | Formal model (Definitions 2.1–2.4, Axioms 2.5–2.7) |
+| 2 | Formal model (Definitions 2.1–2.4, Axioms 2.5–2.7, §2.5 Sources of identity content, §2.6 Non-consensual third-party identity (out of scope), §2.7 Hypergraph identity state) |
 | 3 | Layer theory (the 6 accretion layers) |
-| 4 | Founding events across substrates |
+| 4 | Founding events across substrates (incl. §4.6 Physical-good founding) |
 | 5 | Machine identity storage + Tier monotonicity theorem |
 | 6 | Agent identity + Stratum well-foundedness theorem |
 | 7 | LLM identity + Instance non-identity theorem |
-| 8 | Cryptographic substrate + Cryptographic survival theorem |
-| 9 | Current digital ID landscape (May 2026) |
-| 10 | Paraxiom architecture + Crypto-shredding completeness theorem |
-| 11 | Future scenarios |
-| 12 | Implementation roadmap |
-| 13 | Conclusion |
-| A | Detailed proofs |
+| 8 | Governance levels and identity participation (chartered scope, multi-level participation, reputation non-transitivity) |
+| 9 | Cryptographic substrate + Cryptographic survival theorem |
+| 10 | Current digital ID landscape (May 2026) — incl. §10.3 NFT-based identity primitives, §10.7 Positioning fit, §10.8 Positioning vs. W3C VC 2.0 / DIDs 1.1 |
+| 11 | Paraxiom architecture + Crypto-shredding completeness theorem + Verification-time accountability theorem |
+| 12 | Privacy, anonymity, and user-controlled disclosure (5-tier model, selective-disclosure soundness, unlinkability) |
+| 13 | Future scenarios |
+| 14 | Implementation roadmap *(internal build only)* |
+| 15 | Conclusion |
+| A | Detailed proofs (founding uniqueness, stratum well-foundedness, cryptographic survival, crypto-shredding completeness) |
 | B | Pallet API specifications |
-| C | Sources |
+| C | ZK-augmented pallet extrinsics (v0.3) |
+| D | Sources |
 
 ## Theorems proven
 
@@ -58,7 +64,7 @@ Requires xelatex with `fontspec`, `unicode-math`, `amsthm`,
 6. **Crypto-shredding completeness** — master-key deletion renders
    ciphertexts inaccessible regardless of pin status (App. A.4)
 7. **Verification-time accountability** — `verify_chain` terminates
-   correctly in finite steps (§10.7)
+   correctly in finite steps (§11.7)
 
 ## Companion documents
 
@@ -73,19 +79,17 @@ Requires xelatex with `fontspec`, `unicode-math`, `amsthm`,
 - `pipeline/ui/docs/IDENTITY-ARCHITECTURE.md` — markdown narrative version
 - `pipeline/ui/docs/IDENTITY-PALLETS-DESIGN.md` — pallet design spec
 - `pipeline/ui/docs/IDENTITY-SUBSTRATES.md` — multi-chain + ephemeral identities
-- `pipeline/ui/docs/FIELDNOW-PERSONAS.md` — NC-specific persona enumeration
-- `pipeline/ui/docs/GOV-APP-IDENTITY-AND-ERASURE.md` — first consumer impl spec
-- `pipeline/ui/docs/GOVERNANCE-ROADMAP.md` — §10 ID anchor product roadmap
+- `pipeline/ui/docs/GOVERNANCE-ROADMAP.md` — product roadmap (downstream)
 
 ## Citation
 
 > Cormier, S. *Identity as Accountability Chain: A Post-Quantum
 > Architecture for Persistent Identity Across Human, Machine, and AI
-> Agent Substrates*. Paraxiom Technologies Inc., May 15, 2026.
+> Agent Substrates*. Paraxiom Technologies Inc., May 22, 2026.
 
 ## Status
 
-v1.0, May 15, 2026. Draft for internal review prior to ADR-0017
+v1.0, May 22, 2026. Draft for internal review prior to ADR-0017
 architectural session.
 
 ## License

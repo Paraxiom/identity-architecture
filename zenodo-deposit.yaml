@@ -24,7 +24,7 @@ title: "Identity as Accountability Chain: A Post-Quantum Architecture for Persis
 creators:
   - name: Cormier, Sylvain
     affiliation: Paraxiom Technologies Inc.
-    orcid: ~  # REQUIRED — fill from https://orcid.org/{your-id}
+    # orcid: omitted in v1.0 deposit; add via deposit edit if/when registered.
 
 description: |
   We propose a formal model in which identity is not a primitive but a
@@ -34,18 +34,23 @@ description: |
   and artificial-intelligence cases under a single schema with six accretion
   layers and a four-tier permanence hierarchy for substrate-level identifiers.
 
-  We prove six results that bear directly on engineering: (i) Founding
-  uniqueness — every identity locus has exactly one origin event; (ii) Tier
-  monotonicity — the permanence of an identity claim is non-increasing in
-  the tier of its substrate identifier; (iii) Stratum well-foundedness —
-  every scoped or agent identity traces in finite steps to a person- or
-  organization-rooted identity; (iv) Cryptographic survival — only
-  post-quantum-signed identities remain verifiable past a
-  cryptographically-relevant quantum computer (CRQC) event; (v) Crypto-
-  shredding completeness — master-key deletion renders all envelope-
-  encrypted credentials computationally inaccessible without recourse to
-  unpinning; (vi) LLM instance non-identity — two LLM instances with
-  identical weights but disjoint deployment IDs are distinct identity loci.
+  We state and prove seven results that bear directly on engineering:
+  (i) Founding uniqueness — every identity locus has exactly one origin
+  event; (ii) Tier monotonicity — the permanence of an identity claim is
+  non-increasing in the tier of its substrate identifier; (iii) Stratum
+  well-foundedness — every scoped or agent identity traces in finite steps
+  to a person- or organization-rooted identity; (iv) LLM instance
+  non-identity — two LLM instances with identical weights but disjoint
+  deployment IDs are distinct identity loci; (v) Cryptographic survival —
+  only post-quantum-signed identities remain verifiable past a
+  cryptographically-relevant quantum computer (CRQC) event;
+  (vi) Crypto-shredding completeness — master-key deletion renders all
+  envelope-encrypted credentials computationally inaccessible without
+  recourse to unpinning; and (vii) Verification-time accountability — the
+  reference verify_chain procedure terminates correctly in a finite number
+  of steps. Proofs appear in Appendices A.1–A.4 and §5.6, §7.2, §10.7. The
+  results are presented as mathematical proofs and are not yet
+  machine-checked in a proof assistant.
 
   Additional results on governance-level participation (chartered scope
   bounding, multi-level participation independence, reputation
@@ -90,9 +95,9 @@ keywords:
   - augmented democracy
   - quantum harmony
 
-communities:
-  - identifier: cs-cr  # cryptography & security
-  # Add: - identifier: open-science (if Paraxiom is a member)
+communities: []
+  # No verified Zenodo community at deposit time. After publish, a community
+  # request can be added via the deposit edit UI (e.g., open-science, eosc).
 
 subjects:
   - term: Computer Science — Cryptography and Security
@@ -136,16 +141,17 @@ notes: |
   Pre-publication v1.0 draft. v1.0.1 will be released after the DOI is
   assigned (to include the self-citation).
 
-# Optional fields (fill in if applicable at deposit time):
-#
-# language: eng
-# version: 1.0
+language: eng
+version: "1.0"
+imprint_publisher: Paraxiom Technologies Inc.
+imprint_place: Montréal, Québec, Canada
+locations:
+  - place: Montréal, Québec, Canada
+    lat: 45.5
+    lon: -73.6
+
+# Optional fields not used in v1.0:
 # grants:                # if funded
 #   - id: 10.13039/501100000038::SR&ED-2026-...
 # embargo_date: ~        # leave blank for immediate open access
 # embargo_reason: ~
-# locations:             # geographic context (optional)
-#   - place: Montréal, Québec, Canada
-#     point: { lat: 45.5, lon: -73.6 }
-# imprint_publisher: Paraxiom Technologies Inc.
-# imprint_place: Montréal, Québec, Canada
