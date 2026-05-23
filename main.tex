@@ -791,6 +791,90 @@ with $h_{\identity}$ derived from on-chain state. Forward
 compatibility with v0.2 is preserved: every v0.2 relational fact
 appears as a 2-ary hyperedge in $\mathcal{H}$ without translation.
 
+\subsection{Formalization status}\label{subsec:formalization}
+
+The seven principal theorems of this treatise are accompanied by a
+companion Lean~4 formalization \cite{cormier-identity-arch-lean-2026}
+that builds against Mathlib v4.27.0 (the same pin as Paraxiom's other
+formal-verification projects). The current build produces zero
+sorries, zero kernel errors, and the kernel-checked statements
+correspond directly to the theorem identifiers cited inline below.
+\Cref{tab:formalization-status} maps the theorems to their Lean
+identifiers and notes whether each is fully deductive from the model
+primitives or chain-reduction-checked relative to a named external
+axiom.
+
+\begin{table}[h]
+\centering
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}p{4.7cm}p{3.7cm}p{6.0cm}@{}}
+\toprule
+\textsf{Treatise theorem} & \textsf{Lean identifier} & \textsf{Verification mode}\\
+\midrule
+2.8 Founding uniqueness & \texttt{founding\_uniqueness} & Deductive from \texttt{IdentityLocus} construction\\
+5.2 Tier monotonicity & \texttt{tier\_monotonicity} & Chain-level reduction; relies on \textsf{tier\_monotonicity\_axiom} (empirical permanence-rate ordering)\\
+6.2 Stratum well-foundedness & \texttt{stratum\_wellfoundedness} & Deductive (Nat strong induction over chain block height); see \Cref{app:lean-excerpt}\\
+7.3 LLM instance non-identity & \texttt{llm\_instance\_non\_identity} & Deductive from record-equality on \texttt{LLMInstance}\\
+9.1 Cryptographic survival & \texttt{cryptographic\_survival} & Chain-level reduction; relies on \textsf{euf\_cma\_pq\_secure\_under\_crqc} and \textsf{shor\_breaks\_classical\_under\_crqc}\\
+11.1 Crypto-shredding completeness & \texttt{crypto\_shredding\_completeness} & Chain-level reduction; relies on \textsf{aes\_256\_gcm\_ind\_cpa}\\
+11.3 Verification-time accountability & \texttt{verification\_time\_accountability} & Deductive (via \texttt{stratum\_wellfoundedness})\\
+\bottomrule
+\end{tabular}
+\caption{Mapping of treatise theorems to Lean identifiers and
+verification modes. Four of the seven theorems are kernel-checked
+deductively against the model primitives; the remaining three are
+kernel-checked at the chain-reduction layer relative to named
+cryptographic or probabilistic axioms. This convention follows
+EasyCrypt and CryptoVerif: chain-level reductions are kernel-checked
+relative to security assumptions; the assumptions themselves are not
+internally reducible.}
+\label{tab:formalization-status}
+\end{table}
+
+\paragraph{Explicit axiom statements.} The four axioms named in
+\Cref{tab:formalization-status} stand for the following claims:
+
+\begin{description}
+\item[\textsf{tier\_monotonicity\_axiom}] For any survival-probability
+  function $P_\mathrm{survive} : \mathbb{T}_\mathrm{tier} \to \mathbb{R}$
+  over the four-tier hierarchy of \Cref{sec:machine-storage}, the
+  function is non-increasing in the tier index. The axiom encodes an
+  empirical claim about hardware-replacement rate, installation-reset
+  rate, configuration-rotation rate, and process-restart rate; the
+  underlying probability model is not formalized here.
+\item[\textsf{euf\_cma\_pq\_secure\_under\_crqc}] For any
+  post-quantum signature scheme $\Sigma$ standardized under FIPS~203,
+  204, or 205~\cite{nist-fips-203,nist-fips-204,nist-fips-205}, and
+  any polynomial-time quantum adversary $\mathcal{A}$ with access to a
+  chosen-message oracle, the EUF-CMA forgery advantage of $\mathcal{A}$
+  against $\Sigma$ is negligible in the post-quantum security
+  parameter $\lambda \geq 128$.
+\item[\textsf{shor\_breaks\_classical\_under\_crqc}] Conditioned on
+  the existence of a CRQC capable of running Shor's
+  algorithm~\cite{shor-1994} at the relevant key size, any classical
+  signature scheme $\Sigma' \in \{\text{ECDSA}, \text{RSA-PSS},
+  \text{EdDSA}\}$ admits forgery with probability $1 - \mathrm{negl}'$
+  where $\mathrm{negl}'$ is dominated by the classical key length.
+\item[\textsf{aes\_256\_gcm\_ind\_cpa}] AES-256-GCM is IND-CPA-secure
+  under the standard model: for any polynomial-time adversary
+  $\mathcal{A}$ lacking the key, the IND-CPA distinguishing advantage
+  is negligible in the AES security parameter $\lambda = 256$.
+\end{description}
+
+\paragraph{How to verify the kernel check.} The Lean repository is
+public under the Paraxiom organization. Reproducing the kernel check
+takes one command after \texttt{elan} is installed:
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small]
+git clone https://github.com/Paraxiom/identity-architecture-lean.git
+cd identity-architecture-lean
+git checkout e3806ac        # commit pinned to this treatise version
+lake update                 # fetches Mathlib v4.27.0 (one-time)
+lake build                  # ~5-8 min cold; expect 0 sorries, 0 errors
+\end{lstlisting}
+A representative kernel-checked proof is reproduced verbatim in
+\Cref{app:lean-excerpt}.
+
 % =============================================================================
 \section{Layer theory}\label{sec:layer-theory}
 % =============================================================================
@@ -2374,32 +2458,94 @@ The architecture is engineering, and engineering has costs. We name
 them explicitly rather than letting them be discovered at integration
 time.
 
-\paragraph{Signature storage.} Post-quantum signatures are
-substantially larger than classical ones: SPHINCS+-256f-simple is
-49{,}856 bytes; Ed25519 is 64 bytes. Falcon-512 reduces the gap
-(666~bytes) but remains an order of magnitude larger. Every
-identity-bearing transaction carries at least one signature; many
-carry several. The chain's storage growth rate is therefore tied to
-the signature surface chosen per pallet, and SPHINCS+-dominated
-deployments will see roughly $\mathrm{O}(10^3 \times)$ greater
-per-extrinsic chain bytes than classical Substrate baselines. The
-trade-off is intentional --- chain history must survive CRQC --- but
-operators should budget for it.
+\paragraph{Signature storage: concrete numbers.} Post-quantum
+signatures are substantially larger than classical ones. The
+relevant per-signature byte counts at NIST Level~5 / 128-bit
+post-quantum security:
+
+\begin{center}
+\small
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+\textsf{Scheme} & \textsf{Sig (bytes)} & \textsf{Pub key (bytes)} & \textsf{Lane}\\
+\midrule
+Ed25519             &   64  &  32  & classical\\
+ECDSA-P256          &   64  &  64  & classical\\
+RSA-2048-PSS        &  256  & 270  & classical\\
+ML-DSA-87 (FIPS 204) & 4{,}627  & 2{,}592 & post-quantum\\
+Falcon-512  (FN-DSA)  &  666  &  897 & post-quantum\\
+SPHINCS+-256f-simple (FIPS 205) & 49{,}856 & 64 & post-quantum (hash-only)\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+For Paraxiom's chosen surface (Falcon-512 for most extrinsics,
+SPHINCS+ for high-assurance attestations such as substrate provenance
+and validator-set commits), the dominant cost is Falcon's
+${\sim}10\times$ overhead per signature relative to Ed25519, plus
+periodic SPHINCS+-bearing extrinsics that consume ${\sim}50$~KB each.
+
+\paragraph{Chain-storage growth rate (worked estimate).} Take a
+network sustaining 100~transactions per second, each carrying a single
+Falcon-512 signature. The signature surface alone contributes
+$100 \cdot 666\,\text{B} = 66.6\,\text{kB/s} \approx 5.8\,\text{GB/day}
+\approx 2.1\,\text{TB/year}$ \emph{of chain state per validator}, before
+any non-signature payload. For the same network on Ed25519, the
+corresponding figure is $100 \cdot 64\,\text{B} = 6.4\,\text{kB/s}
+\approx 0.55\,\text{GB/day} \approx 200\,\text{GB/year}$. The
+$\sim$10$\times$ overhead is real and must be budgeted across
+validator-side storage, archival nodes, and state-snapshot
+distribution.
+
+A SPHINCS+-dominated deployment (validator-set commits every block at
+500~ms block time, each carrying one SPHINCS+ signature) consumes an
+additional $2 \cdot 49\,856\,\text{B/s} \approx 100\,\text{kB/s} \approx
+8.5\,\text{GB/day} \approx 3.1\,\text{TB/year}$. SPHINCS+ should
+therefore be applied sparingly, on the highest-assurance
+attestations only.
 
 \paragraph{Hybrid signature complexity.} Until the post-quantum
-ecosystem is mature, many deployments will run hybrid (classical +
+ecosystem is mature, many deployments will run hybrid (classical~+
 post-quantum) signatures. This doubles the per-extrinsic signing and
-verification work and the storage footprint. \Cref{tab:positioning}
-records this as a near-term operational reality rather than a
-design defect.
+verification work and the storage footprint --- adding roughly
+$+64\,\text{B}$ (Ed25519 component) on top of every Falcon-bearing
+extrinsic. Net per-extrinsic chain bytes for a hybrid Falcon-512 +
+Ed25519 transaction: $666 + 64 = 730\,\text{B}$, a $1.1\times$
+overhead on top of the PQ-only baseline. Cheap, and worth it during
+the transition window.
 
-\paragraph{IPFS pinning operational burden.} The credential-vault
-flow places ciphertexts on IPFS, addressed by CID. Persistence
-requires active pinning; an unpinned ciphertext can be lost even
-though its on-chain commitment remains. Operators must run pinning
-infrastructure (their own or third-party) and account for outage and
-unavailability. We do not commit the architecture to a specific
-pinning strategy.
+\paragraph{Realistic mitigations.} Three techniques actually planned
+for Paraxiom-substrate deployments: (i)~\emph{selective PQ}: SPHINCS+
+only for high-assurance strata
+(S5~cross-tenant founders, validator-set commits, substrate-attestation
+pallet), Falcon-512 for everything else, hybrid Ed25519 + Falcon for
+transitional interop with classical-only ecosystems;
+(ii)~\emph{state pruning}: validator nodes keep recent state in hot
+storage and archive older history to cold storage / IPFS-pinned
+snapshots, restoring on demand; (iii)~\emph{aggregated signatures}
+where the scheme permits: Falcon does not aggregate, but per-block
+SPHINCS+ commits can use Merkle aggregation of validator signatures to
+amortize the 50~KB cost across the validator set rather than per
+validator.
+
+\paragraph{IPFS pinning: concrete numbers.} The credential-vault
+flow places ciphertexts on IPFS, addressed by CID. A typical
+envelope-encrypted credential is $2$--$4\,\text{KB}$ (AES-256-GCM
+header $+$ ciphertext of a JSON-encoded credential payload). At
+commercial pinning rates as of May~2026 (Pinata: ${\sim}\$0.15$/GB-month;
+Filecoin storage providers via Web3.Storage: ${\sim}\$0.02$/GB-month
+for cold storage), an organization holding $10^4$ active vault
+credentials sees a steady-state IPFS payload of ${\sim}30\,\text{MB}$,
+costing ${\sim}\$0.005$/month on Pinata or effectively free on
+Filecoin-tier infrastructure. The cost is dominated not by storage
+but by the operational burden of \emph{guaranteeing pinning}: outage
+and replacement strategy, multi-provider redundancy, and recovery
+after a pinning-service failure are the real expense. We do not
+commit the architecture to a specific pinning strategy; we do commit
+to the property that an unpinned ciphertext is functionally
+crypto-shredded (\Cref{thm:crypto-shredding}), so operators retain
+the option of deliberate unpinning as a legitimate revocation
+mechanism.
 
 \paragraph{Cross-substrate implementation complexity.} Unifying
 human, machine, container, process, LLM substrate, LLM instance, and
@@ -2429,6 +2575,29 @@ re-fetches all pinned payloads. Operators should plan for incremental
 event subscription, snapshotting, and graceful catch-up after
 extended downtime.
 
+\paragraph{Operational costs.} Beyond chain-bytes and storage, four
+recurring operational burdens deserve naming: (i)~\emph{key
+rotation}, which under PQ schemes requires regenerating the larger
+keypair (Falcon-512: 897~B public key; SPHINCS+: 64~B) and
+co-signing a rotation extrinsic --- the standard frequency is
+annual for routine operations and immediate on suspected compromise,
+but the cost-per-rotation is dominated by the off-chain re-binding
+of the new key to relying parties; (ii)~\emph{recovery after
+crypto-shredding}: deliberate-erasure is a one-way operation by
+\Cref{thm:crypto-shredding}, so recovery requires re-onboarding
+through the original issuer (KYC issuer, manufacturer, etc.) rather
+than chain primitives --- this is a feature, not a bug, but it
+imposes per-loss operational cost on the holder; (iii)~\emph{audit
+and compliance overhead}: the architecture produces a
+chain-of-custody artifact suitable for regulatory audit, but compiling
+auditor-ready reports (mapping chain events to regulatory categories,
+proving non-disclosure) is an off-chain ongoing task; (iv)~\emph{developer
+onboarding curve}: a competent Substrate developer needs ${\sim}2$~weeks
+to internalize the seven-stratum model, the privacy-tier mapping, and
+the credential-vault flow; consumer integrators (relying parties)
+need ${\sim}1$~week with the published SDKs to reach production-grade
+integration.
+
 \paragraph{Governance of governance.} Many architectural primitives
 (stratum lattice, governance-body taxonomy, privacy-tier mapping,
 ZK-augmented extrinsic set) require ongoing curation: how new strata
@@ -2438,14 +2607,35 @@ upgrade mechanism (runtime spec version) is the operational tool for
 extending it. There is no escape from the recursive question
 ``\emph{who governs the chain that governs}.''
 
-\paragraph{What the model does \emph{not} solve.} The
-\Cref{subsec:adversarial} scoping is restated here for clarity: this
-architecture provides no recourse against non-consensual third-party
-identity records. A locus engaged in a dispute with a data broker, a
-state surveillance program, an algorithmic-scoring authority, or an
-employer dossier operates under the applicable regulatory regime, not
-through the chain. Closing that asymmetry is research, not
-engineering, and a different work.
+\paragraph{What this architecture is deliberately \emph{not} trying
+to be.} Naming the negative space is as load-bearing as the positive
+claims:
+\begin{itemize}
+\item \textbf{Not a consumer wallet.} The treatise specifies a
+  substrate; consumer-facing wallet UX, recovery flows, and
+  KYC-onboarding integrations are deliberately out of scope.
+\item \textbf{Not a drop-in eIDAS or DIACC replacement.} The
+  architecture interoperates with these frameworks at the wire-protocol
+  layer (OID4VP, SD-JWT VC, ISO mdoc) but does not displace national
+  trust frameworks; jurisdictional sovereignty is preserved by the
+  $L_4$ anchor pattern (\Cref{def:identity-locus}).
+\item \textbf{Not a recourse mechanism for non-consensual records.}
+  \Cref{subsec:adversarial} is restated here for clarity: this
+  architecture provides no chain-native recourse against data-broker
+  dossiers, surveillance records, algorithmic scoring, or employer
+  dossiers. The applicable regulatory regimes (GDPR Art.~17, CCPA
+  \S{}1798.105, FCRA, EU~AI~Act) operate against such records;
+  closing the asymmetry is research, not engineering.
+\item \textbf{Not a payment or DeFi layer.} The chain anchors
+  identity; transferable assets and protocol-financial primitives
+  belong to other layers and are not part of this specification.
+\item \textbf{Not a guarantee of correctness for downstream
+  classifiers.} The substrate-attestation pallet (\Cref{sec:llm})
+  binds outputs to weights and to a publisher; it does not attest
+  that the weights themselves are correct, aligned, or unbiased.
+  That is the publisher's responsibility, audited via separate
+  mechanisms.
+\end{itemize}
 
 % =============================================================================
 \section{Privacy, anonymity, and user-controlled disclosure}\label{sec:privacy}
@@ -3265,6 +3455,73 @@ pub fn prove_threshold(
 ) -> Result<bool, DispatchError>;
 // Verifier-side helper; does not write to state.
 \end{lstlisting}
+
+\section{Lean formalization excerpt}\label{app:lean-excerpt}
+
+The following is the verbatim Lean~4 proof of \Cref{thm:stratum-wellfounded}
+(``every non-S1 identity reaches an S1 ancestor in finite steps'')
+from the companion repository
+\cite{cormier-identity-arch-lean-2026}, file
+\texttt{IdentityArchitecture/Stratum.lean}. It is the most
+substantive of the four fully-deductive proofs in the formalization:
+a strong-induction argument over chain block height showing that the
+parent-pointer relation terminates at S1 in finitely many steps. The
+proof depends only on Mathlib v4.27.0 primitives (\texttt{Nat.le\_zero},
+\texttt{Nat.le\_refl}, \texttt{omega}) and the
+\texttt{ChainDiscipline} structure declared earlier in the same file;
+no cryptographic or probabilistic axioms appear.
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,language={}]
+theorem stratum_wellfoundedness
+    (R : Registry) (hCD : ChainDiscipline R) :
+    ∀ I ∈ R, ∃ n J, J ∈ R ∧ J.stratum = Stratum.s1Person ∧ AncestorAt R n I J := by
+  -- Strengthen: prove the statement for all identities with blockHeight ≤ k,
+  -- by induction on k.
+  suffices h : ∀ k : Nat, ∀ I ∈ R, I.blockHeight ≤ k →
+      ∃ n J, J ∈ R ∧ J.stratum = Stratum.s1Person ∧ AncestorAt R n I J by
+    intro I hI
+    exact h I.blockHeight I hI (Nat.le_refl _)
+  intro k
+  induction k with
+  | zero =>
+    intro I hI hbh
+    by_cases hS1 : I.stratum = Stratum.s1Person
+    · exact ⟨0, I, hI, hS1, AncestorAt.refl I⟩
+    · -- I has a parent P with P.blockHeight < I.blockHeight ≤ 0 — impossible
+      obtain ⟨pid, hpid, P, hP_in, hP_id⟩ := hCD.nons1_has_parent I hI hS1
+      have hP_lt : P.blockHeight < I.blockHeight :=
+        hCD.parent_height_strict I hI pid hpid P hP_in hP_id
+      have hI0 : I.blockHeight = 0 := Nat.le_zero.mp hbh
+      omega
+  | succ n ih =>
+    intro I hI hbh
+    by_cases hS1 : I.stratum = Stratum.s1Person
+    · exact ⟨0, I, hI, hS1, AncestorAt.refl I⟩
+    · obtain ⟨pid, hpid, P, hP_in, hP_id⟩ := hCD.nons1_has_parent I hI hS1
+      have hP_lt : P.blockHeight < I.blockHeight :=
+        hCD.parent_height_strict I hI pid hpid P hP_in hP_id
+      have hP_le_n : P.blockHeight ≤ n := by omega
+      obtain ⟨m, J, hJ_in, hJ_S1, hAncP⟩ := ih P hP_in hP_le_n
+      refine ⟨m + 1, J, hJ_in, hJ_S1, ?_⟩
+      have hpidP : I.parentId = some P.id := hP_id ▸ hpid
+      exact AncestorAt.step hI hP_in hpidP hAncP
+\end{lstlisting}
+
+\noindent\textbf{Informal proof sketch.} We strengthen the statement
+to: for every $k$, every identity $I$ with block height $\leq k$
+reaches an S1 ancestor in finite steps. We induct on $k$. \emph{Base
+case} $k=0$: if $I$ is S1, the 0-step ancestor is $I$ itself; if $I$
+is non-S1, the chain discipline forces $I$ to have a parent $P$ with
+$P.\text{blockHeight} < I.\text{blockHeight} \leq 0$, an impossibility
+in $\mathbb{N}$. \emph{Inductive step} $k = n+1$: if $I$ is S1, done;
+otherwise $I$'s parent $P$ has $P.\text{blockHeight} \leq n$ and the
+induction hypothesis gives an S1 ancestor of $P$ in finite steps,
+which is also an S1 ancestor of $I$ at one greater depth. The Lean
+proof above is the exact mechanization of this argument.
+
+The six other theorems in the formalization
+(\Cref{tab:formalization-status}) follow similar structures; they are
+viewable in full in the companion repository.
 
 \section{Sources}\label{app:sources}
 
