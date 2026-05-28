@@ -24,6 +24,15 @@ title: "Identity as Accountability Chain: A Post-Quantum Architecture for Persis
 creators:
   - name: Cormier, Sylvain
     affiliation: Paraxiom Technologies Inc.
+
+contributors:
+  - name: Mao, Isaac
+    type: Researcher
+    # Credited for the hypergraph generalization concept developed in
+    # § 2.7 (Hypergraph identity state). The framing of higher-arity
+    # relational structures (joint authorship, committee-ratifies-charter,
+    # multi-party agreements as first-class identity facts) was prompted
+    # by a conversation with him.
     # orcid: omitted in v1.0 deposit; add via deposit edit if/when registered.
 
 description: |
